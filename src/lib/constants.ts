@@ -138,7 +138,7 @@ export const EXPERIMENT_TEMPLATES = {
       ],
     },
   },
-  projectile: {
+  projectilemotion: {
     name: 'Projectile Motion',
     category: 'physics',
     description: 'Analyze 2D motion under gravity',

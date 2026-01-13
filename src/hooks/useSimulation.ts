@@ -20,22 +20,28 @@ export function useSimulation(experimentType: 'physics' | 'chemistry') {
     dataPoints: [],
   });
 
-  // Initialize engines
-  useEffect(() => {
-    if (experimentType === 'physics') {
-      physicsEngineRef.current = new PhysicsEngine();
-    } else {
-      chemistryEngineRef.current = new ChemistryCore();
-    }
-
+  // Initialize engines synchronously so consumers receive non-null refs
+  if (!simulationLoopRef.current) {
     simulationLoopRef.current = new SimulationLoop();
+  }
 
+  if (experimentType === 'physics') {
+    if (!physicsEngineRef.current) physicsEngineRef.current = new PhysicsEngine();
+  } else {
+    if (!chemistryEngineRef.current) chemistryEngineRef.current = new ChemistryCore();
+  }
+
+  // Cleanup on unmount or experimentType change
+  useEffect(() => {
     return () => {
-      // Cleanup
       simulationLoopRef.current?.stop();
       physicsEngineRef.current?.reset();
       chemistryEngineRef.current?.reset();
+      simulationLoopRef.current = null;
+      physicsEngineRef.current = null;
+      chemistryEngineRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [experimentType]);
 
   // Start simulation

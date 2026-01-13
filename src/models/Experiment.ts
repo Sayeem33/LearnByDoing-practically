@@ -48,7 +48,7 @@ interface ExperimentState {
 }
 
 export interface IExperiment extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   title: string;
   description?: string;
   category: 'physics' | 'chemistry' | 'electronics';
@@ -67,8 +67,7 @@ export interface IExperiment extends Document {
 const ExperimentSchema = new Schema<IExperiment>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
       index: true,
     },

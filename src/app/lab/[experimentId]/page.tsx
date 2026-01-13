@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Slider from '@/components/ui/Slider';
@@ -29,10 +29,13 @@ interface LabWorkspaceProps {
 
 export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { experimentId } = params;
 
-  // Get experiment template
-  const experimentType = experimentId === 'new' ? 'freefall' : experimentId;
+  // Get experiment template - use query param 'type' if experimentId is 'new'
+  const experimentType = experimentId === 'new' 
+    ? (searchParams.get('type') || 'freefall') 
+    : experimentId;
   const template = EXPERIMENT_TEMPLATES[experimentType as keyof typeof EXPERIMENT_TEMPLATES];
 
   const [selectedTool, setSelectedTool] = useState<any>(null);
@@ -57,6 +60,80 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
       maxPoints: 1000,
       captureInterval: 50,
     });
+
+  // Apply template initial setup when physics engine becomes available
+  useEffect(() => {
+    if (!physicsEngine || !template?.initialSetup) return;
+
+    const setup = template.initialSetup;
+    const created: any[] = [];
+
+    // Create initial physics objects if provided
+        if ('objects' in setup && Array.isArray((setup as any).objects)) {
+          const objs = (setup as any).objects as any[];
+          objs.forEach((obj: any) => {
+            let id: string | null = null;
+            switch (obj.type) {
+              case 'ball':
+                id = physicsEngine.createBall(obj.x || 100, obj.y || 100, obj.radius || 20, obj);
+                break;
+              case 'box':
+                id = physicsEngine.createBox(obj.x || 100, obj.y || 100, obj.width || 60, obj.height || 60, obj);
+                break;
+              case 'pendulum':
+                id = physicsEngine.createPendulum(obj.x || 100, obj.y || 100, obj.length || 150, obj);
+                break;
+              case 'cannon':
+                // Represent cannon as a stationary ball (projectile spawn point)
+                // Add autoLaunch flag defaulting to true unless explicitly disabled in template
+                const meta = { ...obj, autoLaunch: obj.autoLaunch === false ? false : true };
+                id = physicsEngine.createBall(obj.x || 50, obj.y || 400, obj.radius || 8, { isSensor: true, render: { fillStyle: '#222' }, metadata: meta });
+                break;
+              default:
+                break;
+            }
+    
+            if (id) created.push({ id, type: obj.type, x: obj.x, y: obj.y, meta: obj });
+          });
+        }
+
+    if (created.length > 0) setObjects((prev) => [...prev, ...created]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [physicsEngine, template?.initialSetup]);
+
+  // Auto-launch projectile from cannon when simulation starts
+  useEffect(() => {
+    if (!simState.isRunning || !physicsEngine) return;
+    if (experimentType !== 'projectilemotion') return;
+
+    // find cannon object (not yet launched)
+    const cannonObj = objects.find((o) => o.type === 'cannon' && !o.launched);
+    if (!cannonObj) return;
+
+    const meta = cannonObj.meta || {};
+    // respect template's autoLaunch flag (default true)
+    if (meta.autoLaunch === false) return;
+
+    const angle = meta.angle || 45;
+    const speed = meta.velocity || 20;
+
+    // use ProjectileEngine semantics (m/s -> px/s conversion handled by engine.launch)
+    // spawn and launch projectile
+    // create projectile and set velocity using utility on physicsEngine
+    const rad = (angle * Math.PI) / 180;
+    // Convert speed to px/s using PHYSICS.SCALE in engine.launch; here we mimic that logic
+    const { PHYSICS } = require('@/lib/constants');
+    const speedPx = speed * PHYSICS.SCALE;
+    const vx = speedPx * Math.cos(rad);
+    const vy = -speedPx * Math.sin(rad);
+
+    const projId = physicsEngine.createBall(cannonObj.x || 50, cannonObj.y || 400, meta.radius || 8, { color: '#ef4444' });
+    physicsEngine.setVelocity(projId, { x: vx, y: vy });
+
+    // mark cannon as launched to prevent repeated launches
+    setObjects((prev) => prev.map((o) => (o.id === cannonObj.id ? { ...o, launched: true } : o)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simState.isRunning, physicsEngine]);
 
   const chartRef = useRef<HTMLDivElement>(null);
 
