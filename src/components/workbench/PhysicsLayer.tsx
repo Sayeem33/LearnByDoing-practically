@@ -20,17 +20,15 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
   onUpdate,
   className,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const renderRef = useRef<Matter.Render | null>(null);
-  const runnerRef = useRef<Matter.Runner | null>(null);
   const [dragEnabled, setDragEnabled] = useState(true);
 
   useEffect(() => {
-    if (!engine || !canvasRef.current) return;
+    if (!engine || !containerRef.current) return;
 
-    // Create renderer
+    // Create renderer and append to container
     const render = Matter.Render.create({
-      canvas: canvasRef.current,
       engine: engine,
       options: {
         width: CANVAS.WIDTH,
@@ -43,7 +41,19 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
 
     renderRef.current = render;
 
-    // Create mouse constraint for drag & drop
+    // Append the canvas to our container
+    containerRef.current.innerHTML = ''; // Clear container
+    containerRef.current.appendChild(render.canvas);
+
+    // Style the canvas
+    render.canvas.style.borderRadius = '0.75rem';
+    render.canvas.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+    render.canvas.style.cursor = 'grab';
+    render.canvas.style.display = 'block';
+    render.canvas.style.width = '100%';
+    render.canvas.style.height = 'auto';
+
+    // Create mouse for drag & drop
     const mouse = Matter.Mouse.create(render.canvas);
     const mouseConstraint = Matter.MouseConstraint.create(engine, {
       mouse: mouse,
@@ -56,49 +66,29 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
     Matter.World.add(engine.world, mouseConstraint);
     setDragEnabled(true);
 
-    // Start rendering
+    // Start rendering loop
     Matter.Render.run(render);
 
     // Cleanup
     return () => {
+      if (mouseConstraint) {
+        try {
+          Matter.World.remove(engine.world, mouseConstraint as any);
+        } catch (e) {
+          // Already removed
+        }
+      }
       if (renderRef.current) {
         Matter.Render.stop(renderRef.current);
-        if (canvasRef.current) {
-          canvasRef.current.remove();
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
         }
         renderRef.current = null;
-      }
-      if (mouseConstraint) {
-        Matter.World.remove(engine.world, mouseConstraint as any);
       }
     };
   }, [engine]);
 
-  // Control runner based on isRunning state
-  useEffect(() => {
-    if (!engine) return;
-
-    if (isRunning) {
-      if (!runnerRef.current) {
-        runnerRef.current = Matter.Runner.create();
-        Matter.Runner.run(runnerRef.current, engine);
-      }
-    } else {
-      if (runnerRef.current) {
-        Matter.Runner.stop(runnerRef.current);
-        runnerRef.current = null;
-      }
-    }
-
-    return () => {
-      if (runnerRef.current) {
-        Matter.Runner.stop(runnerRef.current);
-        runnerRef.current = null;
-      }
-    };
-  }, [engine, isRunning]);
-
-  // Data collection loop
+  // Data collection loop - separate from rendering
   useEffect(() => {
     if (!engine || !isRunning || !onUpdate) return;
 
@@ -130,9 +120,9 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
 
   return (
     <div className={cn('relative', className)}>
-      <canvas 
-        ref={canvasRef} 
-        className="rounded-xl shadow-lg cursor-grab active:cursor-grabbing w-full" 
+      <div 
+        ref={containerRef}
+        className="rounded-xl overflow-hidden shadow-lg"
         style={{ display: 'block' }}
       />
       {dragEnabled && (

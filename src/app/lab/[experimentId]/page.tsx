@@ -21,7 +21,7 @@ import {
   BookOpen,
   Info,
 } from 'lucide-react';
-import { EXPERIMENT_TEMPLATES, PHYSICS } from '@/lib/constants';
+import { EXPERIMENT_TEMPLATES, PHYSICS, CANVAS } from '@/lib/constants';
 
 interface LabWorkspaceProps {
   params: { experimentId: string };
@@ -41,6 +41,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const [selectedTool, setSelectedTool] = useState<any>(null);
   const [showTutorial, setShowTutorial] = useState(true);
   const [objects, setObjects] = useState<any[]>([]);
+  const [height, setHeight] = useState<number>(100); // For free fall experiments
 
   // Physics simulation
   const {
@@ -139,6 +140,26 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
   // Handle start/stop
   const handleStart = () => {
+    // For free fall experiments, reposition ball to correct height before starting
+    if (experimentType === 'freefall' && physicsEngine && objects.length > 0) {
+      const ballObj = objects.find(o => o.type === 'ball');
+      if (ballObj && ballObj.id) {
+        try {
+          // Remove old ball and create new one at correct height
+          physicsEngine.removeObject(ballObj.id);
+          const newId = physicsEngine.createBall(
+            CANVAS.WIDTH / 2, // centered horizontally
+            height, // user-selected height
+            20, // radius
+            { color: '#ef4444' }
+          );
+          // Update objects state with new ID
+          setObjects(prev => prev.map(o => o.type === 'ball' ? { ...o, id: newId } : o));
+        } catch (e) {
+          console.error('Failed to reposition ball:', e);
+        }
+      }
+    }
     start();
     startCapture();
   };
@@ -189,7 +210,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     if (!obj) return;
 
     // Calculate proper values in SI units
-    const timeSeconds = simState.time || (Date.now() - simState.startTime) / 1000;
+    const timeSeconds = simState.time;
     const positionM = obj.position?.y ? (obj.position.y / PHYSICS.SCALE) : 0;
     const velocityMs = obj.velocity?.y ? (obj.velocity.y / PHYSICS.SCALE) : 0;
     const speedMs = obj.speed ? (obj.speed / PHYSICS.SCALE) : 0;
@@ -360,16 +381,63 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               </div>
             </Card>
 
-            {/* Canvas */}
-            <PhysicsLayer
-              engine={physicsEngine?.getEngine() || null}
-              isRunning={simState.isRunning}
-              onUpdate={handlePhysicsUpdate}
-            />
+            {/* Canvas - Physics Layer */}
+            <Card className="mb-6">
+              <h3 className="font-bold text-lg text-gray-900 mb-4">🎯 Simulation Canvas</h3>
+              <div className="w-full bg-gradient-to-b from-blue-50 to-blue-100 rounded-lg overflow-hidden border-2 border-gray-300" style={{ minHeight: '500px' }}>
+                <PhysicsLayer
+                  engine={physicsEngine?.getEngine() || null}
+                  isRunning={simState.isRunning}
+                  onUpdate={handlePhysicsUpdate}
+                  className="w-full h-full"
+                />
+              </div>
+              {!simState.isRunning && dataPoints.length === 0 && (
+                <p className="text-sm text-gray-600 mt-3 text-center">
+                  👆 Click "Start Simulation" to begin. Then drag the ball if you want!
+                </p>
+              )}
+            </Card>
           </div>
 
           {/* Right Sidebar - Analysis */}
           <div className="lg:col-span-3 space-y-6">
+            {/* Height Control - For Free Fall Experiments */}
+            {experimentType === 'freefall' && (
+              <Card>
+                <h3 className="font-bold text-lg text-gray-900 mb-4">⚙️ Experiment Setup</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Initial Height: <span className="font-bold text-blue-600">{height}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={20}
+                      max={400}
+                      value={height}
+                      onChange={(e) => setHeight(Number(e.target.value))}
+                      disabled={simState.isRunning}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Set height before clicking Start
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-sm text-gray-900 mb-2">📐 Physics Formulas</h4>
+                    <div className="space-y-1 text-sm text-gray-700 font-mono">
+                      <div>v = gt</div>
+                      <div>d = ½gt²</div>
+                      <div>g = 9.8 m/s²</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {/* Live Chart - Velocity vs Time */}
             <div ref={chartRef}>
               <LiveChart
