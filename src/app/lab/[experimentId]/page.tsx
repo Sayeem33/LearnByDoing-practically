@@ -21,7 +21,7 @@ import {
   BookOpen,
   Info,
 } from 'lucide-react';
-import { EXPERIMENT_TEMPLATES } from '@/lib/constants';
+import { EXPERIMENT_TEMPLATES, PHYSICS } from '@/lib/constants';
 
 interface LabWorkspaceProps {
   params: { experimentId: string };
@@ -180,16 +180,30 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     }
   };
 
-  // Data collection callback
+  // Data collection callback - improved version
   const handlePhysicsUpdate = (data: any) => {
-    if (data && data.length > 0 && simState.isRunning) {
-      const obj = data[0];
-      capture({
-        time: simState.time,
-        velocity: obj.speed,
-        position: obj.position.y,
-      });
-    }
+    if (!simState.isRunning || !Array.isArray(data) || data.length === 0) return;
+    
+    // Use first body's data (usually the main object we're tracking)
+    const obj = data[0];
+    if (!obj) return;
+
+    // Calculate proper values in SI units
+    const timeSeconds = simState.time || (Date.now() - simState.startTime) / 1000;
+    const positionM = obj.position?.y ? (obj.position.y / PHYSICS.SCALE) : 0;
+    const velocityMs = obj.velocity?.y ? (obj.velocity.y / PHYSICS.SCALE) : 0;
+    const speedMs = obj.speed ? (obj.speed / PHYSICS.SCALE) : 0;
+
+    capture({
+      time: timeSeconds,
+      position: positionM,
+      velocity: velocityMs,
+      speed: speedMs,
+      x: obj.position?.x || 0,
+      y: obj.position?.y || 0,
+      vx: obj.velocity?.x || 0,
+      vy: obj.velocity?.y || 0,
+    });
   };
 
   // Save experiment
@@ -356,7 +370,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
           {/* Right Sidebar - Analysis */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Live Chart */}
+            {/* Live Chart - Velocity vs Time */}
             <div ref={chartRef}>
               <LiveChart
                 data={dataPoints}
@@ -371,9 +385,22 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               />
             </div>
 
+            {/* Position Chart */}
+            <LiveChart
+              data={dataPoints}
+              config={{
+                xKey: 'time',
+                yKey: 'position',
+                xLabel: 'Time (s)',
+                yLabel: 'Position (m)',
+                title: 'Position vs Time',
+                color: '#10b981',
+              }}
+            />
+
             {/* Export */}
             <Card>
-              <h3 className="font-bold text-gray-900 mb-3">Export Data</h3>
+              <h3 className="font-bold text-gray-900 mb-3">📊 Export Data</h3>
               <ExportBtn
                 data={dataPoints}
                 chartRef={chartRef}
@@ -384,7 +411,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             {/* Data Logger */}
             <DataLogger
               data={dataPoints}
-              columns={['time', 'velocity', 'position']}
+              columns={['time', 'velocity', 'position', 'speed']}
             />
           </div>
         </div>

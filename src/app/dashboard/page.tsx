@@ -111,11 +111,18 @@ export default function DashboardPage() {
                 <CardDescription className="mb-4">
                   {template.description}
                 </CardDescription>
-                <Link href={`/lab/${key}`}>
-                  <Button variant="primary" size="sm" className="w-full">
-                    Start Experiment
-                  </Button>
-                </Link>
+                <div className="space-y-2">
+                  <Link href={`/lab/${key}`}>
+                    <Button variant="primary" size="sm" className="w-full">
+                      Start Experiment
+                    </Button>
+                  </Link>
+                  <Link href={`/tutorials/${key}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Learn More
+                    </Button>
+                  </Link>
+                </div>
               </Card>
             ))}
           </div>

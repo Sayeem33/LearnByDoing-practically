@@ -97,6 +97,9 @@ export default function HomePage() {
               <Link href="/dashboard">
                 <Button variant="ghost">Dashboard</Button>
               </Link>
+              <Link href="/students/dashboard">
+                <Button variant="ghost">Student Dashboard</Button>
+              </Link>
               <Link href="/lab/new">
                 <Button variant="primary">Start Lab</Button>
               </Link>

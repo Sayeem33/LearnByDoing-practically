@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node scripts/seedDatabase.ts"
+    "seed": "ts-node scripts/seedDatabase.ts",
+    "seed:tutorials": "ts-node scripts/seedTutorials.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

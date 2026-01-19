@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import { CANVAS, PHYSICS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ export interface PhysicsLayerProps {
 }
 
 /**
- * PhysicsLayer - Renders Matter.js physics using canvas
+ * PhysicsLayer - Renders Matter.js physics using canvas with drag support
  * Uses useRef for high-performance updates (CO1 - State Synchronization)
  */
 const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
@@ -23,6 +23,7 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderRef = useRef<Matter.Render | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
+  const [dragEnabled, setDragEnabled] = useState(true);
 
   useEffect(() => {
     if (!engine || !canvasRef.current) return;
@@ -42,6 +43,19 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
 
     renderRef.current = render;
 
+    // Create mouse constraint for drag & drop
+    const mouse = Matter.Mouse.create(render.canvas);
+    const mouseConstraint = Matter.MouseConstraint.create(engine, {
+      mouse: mouse,
+      constraint: {
+        stiffness: 0.2,
+        render: { type: 'line' },
+      },
+    });
+
+    Matter.World.add(engine.world, mouseConstraint);
+    setDragEnabled(true);
+
     // Start rendering
     Matter.Render.run(render);
 
@@ -49,8 +63,13 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
     return () => {
       if (renderRef.current) {
         Matter.Render.stop(renderRef.current);
-        renderRef.current.canvas.remove();
+        if (canvasRef.current) {
+          canvasRef.current.remove();
+        }
         renderRef.current = null;
+      }
+      if (mouseConstraint) {
+        Matter.World.remove(engine.world, mouseConstraint as any);
       }
     };
   }, [engine]);
@@ -83,13 +102,9 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
   useEffect(() => {
     if (!engine || !isRunning || !onUpdate) return;
 
-    let lastTime = Date.now();
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const deltaTime = (now - lastTime) / 1000;
-      lastTime = now;
-
-      // Collect data from all bodies
+    let frameId: number;
+    const collectData = () => {
+      // Collect data from all bodies (non-static)
       const bodies = engine.world.bodies.filter((b) => !b.isStatic);
       
       if (bodies.length > 0) {
@@ -105,14 +120,26 @@ const PhysicsLayer: React.FC<PhysicsLayerProps> = ({
 
         onUpdate(data);
       }
-    }, 50); // Collect data every 50ms
+      frameId = requestAnimationFrame(collectData);
+    };
 
-    return () => clearInterval(interval);
+    frameId = requestAnimationFrame(collectData);
+
+    return () => cancelAnimationFrame(frameId);
   }, [engine, isRunning, onUpdate]);
 
   return (
     <div className={cn('relative', className)}>
-      <canvas ref={canvasRef} className="rounded-xl shadow-lg" />
+      <canvas 
+        ref={canvasRef} 
+        className="rounded-xl shadow-lg cursor-grab active:cursor-grabbing w-full" 
+        style={{ display: 'block' }}
+      />
+      {dragEnabled && (
+        <div className="absolute bottom-4 left-4 text-xs text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-2 rounded-lg shadow-sm">
+          🖱️ <span className="font-medium">Drag objects</span> to move them
+        </div>
+      )}
     </div>
   );
 };
