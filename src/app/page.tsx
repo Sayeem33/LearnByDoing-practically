@@ -119,7 +119,7 @@ export default function HomePage() {
             Learn by doing, not just reading. Perfect for students and educators.
           </p>
           <div className="flex justify-center gap-4">
-            <Link href="/lab/new">
+            <Link href="/dashboard">
               <Button size="lg" variant="primary" leftIcon={<Zap size={20} />}>
                 Start Experimenting
               </Button>

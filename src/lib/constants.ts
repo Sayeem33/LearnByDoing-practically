@@ -216,6 +216,66 @@ export const EXPERIMENT_TEMPLATES = {
       apparatus: ['burette', 'flask', 'indicator'],
     },
   },
+  electrolysis: {
+    name: 'Electrolysis of Water',
+    category: 'chemistry',
+    description: 'Split water into hydrogen and oxygen using electricity',
+    theory: '2H₂O → 2H₂ + O₂. Water decomposes when electric current passes through it.',
+    objectives: [
+      'Understand electrolysis process',
+      'Observe gas collection at electrodes',
+      'Verify 2:1 ratio of H₂ to O₂',
+    ],
+    initialSetup: {
+      chemicals: ['H2O', 'NaOH'],
+      apparatus: ['electrodes', 'power supply', 'collection tubes'],
+    },
+  },
+  flametest: {
+    name: 'Flame Test',
+    category: 'chemistry',
+    description: 'Identify metal ions by flame color',
+    theory: 'Metal ions emit characteristic colors when heated in a flame due to electron excitation.',
+    objectives: [
+      'Observe characteristic flame colors',
+      'Identify unknown metal ions',
+      'Understand electron energy levels',
+    ],
+    initialSetup: {
+      chemicals: ['NaCl', 'KCl', 'CuCl2', 'LiCl', 'CaCl2', 'BaCl2'],
+      apparatus: ['bunsen burner', 'nichrome wire'],
+    },
+  },
+  crystallization: {
+    name: 'Crystallization',
+    category: 'chemistry',
+    description: 'Grow crystals from supersaturated solutions',
+    theory: 'Crystals form when a solution becomes supersaturated and solute precipitates in ordered structures.',
+    objectives: [
+      'Prepare saturated solutions',
+      'Observe crystal growth',
+      'Understand solubility and temperature',
+    ],
+    initialSetup: {
+      chemicals: ['CuSO4', 'NaCl', 'Alum'],
+      apparatus: ['beaker', 'stirring rod', 'seed crystal'],
+    },
+  },
+  displacement: {
+    name: 'Metal Displacement',
+    category: 'chemistry',
+    description: 'Observe reactivity series through displacement reactions',
+    theory: 'A more reactive metal displaces a less reactive metal from its compound: Zn + CuSO₄ → ZnSO₄ + Cu',
+    objectives: [
+      'Understand reactivity series',
+      'Observe metal displacement',
+      'Predict reaction outcomes',
+    ],
+    initialSetup: {
+      chemicals: ['Zn', 'CuSO4', 'Fe', 'AgNO3'],
+      apparatus: ['test tubes', 'metal strips'],
+    },
+  },
 };
 
 // User Roles

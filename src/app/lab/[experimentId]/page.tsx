@@ -7,6 +7,16 @@ import Card from '@/components/ui/Card';
 import Slider from '@/components/ui/Slider';
 import Toolbar from '@/components/workbench/Toolbar';
 import PhysicsLayer from '@/components/workbench/PhysicsLayer';
+import AcidBaseWorkbench from '@/components/workbench/AcidBaseWorkbench';
+import FreeFallWorkbench from '@/components/workbench/FreeFallWorkbench';
+import TitrationWorkbench from '@/components/workbench/TitrationWorkbench';
+import CollisionWorkbench from '@/components/workbench/CollisionWorkbench';
+import PendulumWorkbench from '@/components/workbench/PendulumWorkbench';
+import ProjectileWorkbench from '@/components/workbench/ProjectileWorkbench';
+import ElectrolysisWorkbench from '@/components/workbench/ElectrolysisWorkbench';
+import FlameTestWorkbench from '@/components/workbench/FlameTestWorkbench';
+import CrystallizationWorkbench from '@/components/workbench/CrystallizationWorkbench';
+import DisplacementWorkbench from '@/components/workbench/DisplacementWorkbench';
 import LiveChart from '@/components/analysis/LiveChart';
 import DataLogger from '@/components/analysis/DataLogger';
 import ExportBtn from '@/components/analysis/ExportBtn';
@@ -263,6 +273,519 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             Experiment not found
           </h1>
           <Button onClick={() => router.push('/')}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // For chemistry experiments, render dedicated workbench
+  if (template.category === 'chemistry') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Tutorial Panel for Chemistry */}
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    Theory & Objectives
+                  </h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Render appropriate workbench based on experiment type */}
+          {experimentType === 'acidbase' && <AcidBaseWorkbench />}
+          {experimentType === 'titration' && <TitrationWorkbench />}
+          {experimentType === 'electrolysis' && <ElectrolysisWorkbench />}
+          {experimentType === 'flametest' && <FlameTestWorkbench />}
+          {experimentType === 'crystallization' && <CrystallizationWorkbench />}
+          {experimentType === 'displacement' && <DisplacementWorkbench />}
+        </div>
+      </div>
+    );
+  }
+
+  // For collision experiment, render dedicated workbench
+  if (experimentType === 'collision') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Tutorial Panel for Collision */}
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    Theory & Objectives
+                  </h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Collision Workbench */}
+          <CollisionWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For pendulum experiment, render dedicated workbench
+  if (experimentType === 'pendulum') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Tutorial Panel for Pendulum */}
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    Theory & Objectives
+                  </h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Pendulum Workbench */}
+          <PendulumWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For projectile motion experiment, render dedicated workbench
+  if (experimentType === 'projectilemotion') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Tutorial Panel for Projectile Motion */}
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    Theory & Objectives
+                  </h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Projectile Workbench */}
+          <ProjectileWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For electrolysis experiment, render dedicated workbench
+  if (experimentType === 'electrolysis') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template?.name || 'Electrolysis'}</h1>
+                <p className="text-sm text-gray-600">{template?.description || 'Electrolysis of Water'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && template && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <ElectrolysisWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For flame test experiment, render dedicated workbench
+  if (experimentType === 'flametest') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template?.name || 'Flame Test'}</h1>
+                <p className="text-sm text-gray-600">{template?.description || 'Metal Ion Identification'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && template && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <FlameTestWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For crystallization experiment, render dedicated workbench
+  if (experimentType === 'crystallization') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template?.name || 'Crystallization'}</h1>
+                <p className="text-sm text-gray-600">{template?.description || 'Crystal Growth Experiment'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && template && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <CrystallizationWorkbench />
+        </div>
+      </div>
+    );
+  }
+
+  // For displacement experiment, render dedicated workbench
+  if (experimentType === 'displacement') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template?.name || 'Metal Displacement'}</h1>
+                <p className="text-sm text-gray-600">{template?.description || 'Reactivity Series Demonstration'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && template && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj, idx) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <DisplacementWorkbench />
         </div>
       </div>
     );

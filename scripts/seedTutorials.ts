@@ -1,4 +1,9 @@
 import mongoose from 'mongoose';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
 // Tutorial data for all experiments
 const tutorialData = [
@@ -787,6 +792,592 @@ const tutorialData = [
       {
         title: 'Khan Academy - Acid-Base Titration',
         url: 'https://www.khanacademy.org/science/chemistry/acids-bases-and-salts/acid-base-titration',
+      },
+    ],
+  },
+  // ====================== NEW CHEMISTRY EXPERIMENTS ======================
+  {
+    experimentId: 'electrolysis',
+    experimentName: 'Electrolysis of Water',
+    category: 'chemistry',
+    description: 'Learn how electrical energy splits water into hydrogen and oxygen gases',
+    difficulty: 'intermediate',
+    duration: 20,
+    objectives: [
+      'Understand the process of electrolysis',
+      'Learn about oxidation and reduction at electrodes',
+      'Observe the 2:1 ratio of hydrogen to oxygen production',
+      'Apply Faraday\'s laws of electrolysis',
+    ],
+    prerequisites: ['Basic atomic structure', 'Understanding of ions', 'Redox reactions basics'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What is Electrolysis?',
+        content:
+          'Electrolysis is the process of using electrical energy to drive a non-spontaneous chemical reaction. In the electrolysis of water, electrical current passes through water to decompose it into hydrogen and oxygen gases. This process is the opposite of a fuel cell reaction.',
+        keyPoints: [
+          'Electrolysis = "breaking apart with electricity"',
+          'Requires electrical energy input (non-spontaneous)',
+          'Water splits into H₂ and O₂ gases',
+          'Overall: 2H₂O → 2H₂ + O₂',
+          'Minimum voltage required: ~1.23V (decomposition potential)',
+        ],
+        visualDescription:
+          'Show an electrolysis cell with two electrodes immersed in water. Bubbles form at both electrodes, more at the cathode than the anode.',
+      },
+      {
+        chapterNumber: 2,
+        title: 'The Electrolysis Cell',
+        content:
+          'An electrolysis cell consists of two electrodes (cathode and anode) immersed in an electrolyte solution. Pure water is a poor conductor, so an electrolyte like NaOH or H₂SO₄ is added to improve conductivity.',
+        keyPoints: [
+          'Cathode: negative electrode (reduction occurs)',
+          'Anode: positive electrode (oxidation occurs)',
+          'Electrolyte: increases water conductivity',
+          'Common electrolytes: NaOH, KOH, H₂SO₄',
+          'Electrodes are usually inert (platinum, graphite)',
+        ],
+        visualDescription:
+          'Diagram showing cathode (−), anode (+), electrolyte solution, and gas collection tubes above each electrode.',
+      },
+      {
+        chapterNumber: 3,
+        title: 'Half-Reactions',
+        content:
+          'Electrolysis involves two separate half-reactions occurring at each electrode. At the cathode, reduction produces hydrogen. At the anode, oxidation produces oxygen.',
+        keyPoints: [
+          'Cathode (reduction): 2H₂O + 2e⁻ → H₂ + 2OH⁻',
+          'Anode (oxidation): 4OH⁻ → O₂ + 2H₂O + 4e⁻',
+          'Remember: "CATions go to CAThode"',
+          'Reduction: gain of electrons',
+          'Oxidation: loss of electrons (OIL RIG)',
+        ],
+        formula: 'Cathode: 2H₂O + 2e⁻ → H₂ + 2OH⁻\nAnode: 4OH⁻ → O₂ + 2H₂O + 4e⁻',
+        examples: [
+          {
+            title: 'Example: Balancing electrons',
+            description: 'To produce 2 moles of H₂, how many moles of O₂ are produced?',
+            calculation: 'Cathode needs 4e⁻ for 2H₂\nAnode releases 4e⁻ for 1O₂\nRatio H₂:O₂ = 2:1',
+          },
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Volume Ratio of Gases',
+        content:
+          'The stoichiometry of electrolysis shows that hydrogen gas is produced at twice the volume of oxygen gas. This 2:1 ratio is consistent with the molecular formula of water (H₂O).',
+        keyPoints: [
+          'Volume ratio H₂:O₂ = 2:1',
+          'This matches the formula of water',
+          'At cathode: more gas bubbles (H₂)',
+          'At anode: fewer gas bubbles (O₂)',
+          'Can be used to verify water composition',
+        ],
+        formula: '2H₂O → 2H₂ + O₂',
+        examples: [
+          {
+            title: 'Example: Gas volumes',
+            description: 'If 50 mL of H₂ is collected, how much O₂ is collected?',
+            calculation: 'O₂ volume = H₂ volume / 2 = 50 / 2 = 25 mL',
+          },
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Faraday\'s Laws of Electrolysis',
+        content:
+          'Faraday\'s laws quantify the relationship between the amount of substance produced and the electrical charge passed through the electrolyte.',
+        keyPoints: [
+          'First Law: Mass deposited ∝ charge passed (Q = It)',
+          'Second Law: Mass ∝ equivalent weight',
+          'Faraday constant F = 96,485 C/mol',
+          '1 Faraday deposits 1 mole of monovalent ions',
+          'Can calculate mass from current and time',
+        ],
+        formula: 'm = (M × I × t) / (n × F)\nwhere M = molar mass, n = electrons transferred, F = 96,485 C/mol',
+        examples: [
+          {
+            title: 'Example: Hydrogen production',
+            description: 'How many grams of H₂ are produced with 2A for 1 hour?',
+            calculation: 'Q = 2 × 3600 = 7200 C\nmoles e⁻ = 7200/96485 = 0.075\nmoles H₂ = 0.075/2 = 0.0375\nmass = 0.0375 × 2 = 0.075 g',
+          },
+        ],
+      },
+      {
+        chapterNumber: 6,
+        title: 'Factors Affecting Electrolysis',
+        content:
+          'Several factors influence the rate and efficiency of electrolysis, including voltage, current, electrolyte concentration, and electrode surface area.',
+        keyPoints: [
+          'Higher voltage → faster reaction',
+          'Higher current → more gas produced per unit time',
+          'Greater electrolyte concentration → better conductivity',
+          'Larger electrode surface → more reaction sites',
+          'Temperature affects reaction rate',
+        ],
+      },
+      {
+        chapterNumber: 7,
+        title: 'Applications of Electrolysis',
+        content:
+          'Electrolysis has many important industrial and technological applications beyond water splitting.',
+        keyPoints: [
+          'Hydrogen fuel production (clean energy)',
+          'Electroplating metals',
+          'Chlor-alkali process (Cl₂ and NaOH production)',
+          'Aluminum extraction (Hall-Héroult process)',
+          'Water purification',
+        ],
+      },
+    ],
+    relatedTopics: [
+      'Redox Reactions',
+      'Electrochemistry',
+      'Fuel Cells',
+      'Industrial Chemistry',
+    ],
+    references: [
+      {
+        title: 'Khan Academy - Electrolysis',
+        url: 'https://www.khanacademy.org/science/chemistry/oxidation-reduction/electrolysis',
+      },
+      {
+        title: 'Royal Society of Chemistry - Electrolysis',
+        url: 'https://edu.rsc.org/resources/electrolysis',
+      },
+    ],
+  },
+  {
+    experimentId: 'flametest',
+    experimentName: 'Flame Test',
+    category: 'chemistry',
+    description: 'Identify metal ions by their characteristic flame colors',
+    difficulty: 'beginner',
+    duration: 15,
+    objectives: [
+      'Learn to identify metal ions by flame color',
+      'Understand electron excitation and emission',
+      'Relate flame color to light wavelength',
+      'Apply flame tests in qualitative analysis',
+    ],
+    prerequisites: ['Basic atomic structure', 'Understanding of electrons and energy levels'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What is a Flame Test?',
+        content:
+          'A flame test is a qualitative analytical procedure used to detect the presence of certain metal ions based on the characteristic color they impart to a flame. Different metals produce different colors when heated.',
+        keyPoints: [
+          'Simple qualitative test for metal ions',
+          'Each metal has a characteristic flame color',
+          'Used to identify unknown metal compounds',
+          'Quick and easy to perform',
+          'Based on atomic emission spectroscopy principles',
+        ],
+        visualDescription:
+          'Show a Bunsen burner flame with a wire loop holding a sample. Different flame colors for different metals.',
+      },
+      {
+        chapterNumber: 2,
+        title: 'The Science Behind Flame Colors',
+        content:
+          'When metal compounds are heated, electrons absorb thermal energy and jump to higher energy levels (excited state). When these electrons fall back to their ground state, they release energy as light of specific wavelengths, producing characteristic colors.',
+        keyPoints: [
+          'Electrons absorb heat energy',
+          'Jump to higher energy levels (excited)',
+          'Fall back to ground state',
+          'Release energy as visible light',
+          'Wavelength determines color observed',
+        ],
+        formula: 'E = hf = hc/λ\nwhere h = Planck\'s constant, f = frequency, c = speed of light, λ = wavelength',
+        visualDescription:
+          'Energy level diagram showing electron excitation and emission with photon release.',
+      },
+      {
+        chapterNumber: 3,
+        title: 'Common Metal Flame Colors',
+        content:
+          'Each metal ion produces a distinct flame color. Learning these colors allows quick identification of unknown metal compounds.',
+        keyPoints: [
+          'Lithium (Li⁺): Crimson red (671 nm)',
+          'Sodium (Na⁺): Intense yellow (589 nm)',
+          'Potassium (K⁺): Lilac/violet (766 nm)',
+          'Calcium (Ca²⁺): Orange-red (622 nm)',
+          'Copper (Cu²⁺): Blue-green (515 nm)',
+          'Barium (Ba²⁺): Apple green (554 nm)',
+          'Strontium (Sr²⁺): Red (650 nm)',
+        ],
+        visualDescription:
+          'Table showing metal ions and their corresponding flame colors with wavelengths.',
+      },
+      {
+        chapterNumber: 4,
+        title: 'Performing a Flame Test',
+        content:
+          'The flame test procedure is straightforward but requires careful technique to avoid contamination and ensure accurate results.',
+        keyPoints: [
+          'Clean nichrome or platinum wire loop',
+          'Dip loop in concentrated HCl to clean',
+          'Heat until no color is imparted to flame',
+          'Dip clean loop in sample solution',
+          'Hold loop at edge of Bunsen burner flame',
+          'Observe and record flame color',
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Visible Light Spectrum',
+        content:
+          'The visible light spectrum ranges from about 400 nm (violet) to 700 nm (red). Different wavelengths correspond to different colors we perceive.',
+        keyPoints: [
+          'Violet: ~400-450 nm',
+          'Blue: ~450-500 nm',
+          'Green: ~500-550 nm',
+          'Yellow: ~550-600 nm',
+          'Orange: ~600-650 nm',
+          'Red: ~650-700 nm',
+        ],
+        visualDescription:
+          'Rainbow spectrum showing wavelength ranges for each color.',
+      },
+      {
+        chapterNumber: 6,
+        title: 'Limitations and Interferences',
+        content:
+          'While flame tests are useful, they have limitations. Some metals can interfere with each other, and the test is only qualitative.',
+        keyPoints: [
+          'Sodium contamination is common (yellow overwhelms other colors)',
+          'Some metals have similar colors',
+          'Only works for certain metal ions',
+          'Cannot determine concentration',
+          'Use cobalt blue glass to filter sodium\'s yellow',
+        ],
+      },
+      {
+        chapterNumber: 7,
+        title: 'Applications',
+        content:
+          'Flame tests and their underlying principles have many practical applications in science and everyday life.',
+        keyPoints: [
+          'Qualitative analysis in chemistry labs',
+          'Fireworks use metal salts for colors',
+          'Atomic emission spectroscopy',
+          'Forensic analysis',
+          'Quality control in manufacturing',
+        ],
+      },
+    ],
+    relatedTopics: [
+      'Atomic Structure',
+      'Emission Spectra',
+      'Qualitative Analysis',
+      'Fireworks Chemistry',
+    ],
+    references: [
+      {
+        title: 'Royal Society of Chemistry - Flame Tests',
+        url: 'https://edu.rsc.org/resources/flame-tests',
+      },
+      {
+        title: 'Khan Academy - Atomic Emission Spectra',
+        url: 'https://www.khanacademy.org/science/chemistry/electronic-structure-of-atoms',
+      },
+    ],
+  },
+  {
+    experimentId: 'crystallization',
+    experimentName: 'Crystallization',
+    category: 'chemistry',
+    description: 'Grow crystals and understand the science of supersaturation and crystal formation',
+    difficulty: 'beginner',
+    duration: 18,
+    objectives: [
+      'Understand supersaturation and crystal nucleation',
+      'Learn how cooling rate affects crystal size',
+      'Observe different crystal structures',
+      'Apply purification by recrystallization',
+    ],
+    prerequisites: ['Solubility concepts', 'States of matter'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What is Crystallization?',
+        content:
+          'Crystallization is the process by which a solid forms from a solution, melt, or gas, where the atoms or molecules are arranged in an orderly, repeating pattern called a crystal lattice. It is both a natural phenomenon and a technique used for purification.',
+        keyPoints: [
+          'Solid formation with ordered atomic arrangement',
+          'Creates crystal lattice structure',
+          'Can occur from solutions, melts, or vapors',
+          'Important purification technique',
+          'Used extensively in chemistry and materials science',
+        ],
+        visualDescription:
+          'Show the progression from dissolved solute particles to an organized crystal structure.',
+      },
+      {
+        chapterNumber: 2,
+        title: 'Solubility and Temperature',
+        content:
+          'The solubility of most solids increases with temperature. This relationship is key to crystallization: a hot saturated solution becomes supersaturated as it cools.',
+        keyPoints: [
+          'Solubility usually increases with temperature',
+          'Saturated solution: maximum solute dissolved at that temperature',
+          'Supersaturated: contains more solute than equilibrium allows',
+          'Supersaturation is unstable → drives crystallization',
+          'Solubility curves show temperature dependence',
+        ],
+        visualDescription:
+          'Solubility curve graph showing increasing solubility with temperature for common salts.',
+      },
+      {
+        chapterNumber: 3,
+        title: 'Supersaturation',
+        content:
+          'A supersaturated solution contains more dissolved solute than would normally be possible at that temperature. This metastable state provides the driving force for crystallization.',
+        keyPoints: [
+          'Created by cooling a hot saturated solution',
+          'Or by evaporating solvent',
+          'Metastable state (unstable but persistent)',
+          'Degree of supersaturation affects crystal formation',
+          'Higher supersaturation → more nucleation sites',
+        ],
+        formula: 'Supersaturation ratio = Actual concentration / Equilibrium concentration',
+      },
+      {
+        chapterNumber: 4,
+        title: 'Nucleation',
+        content:
+          'Nucleation is the first step of crystallization where tiny seed crystals form. These nuclei act as templates for further crystal growth.',
+        keyPoints: [
+          'Primary nucleation: spontaneous formation',
+          'Secondary nucleation: from existing crystals',
+          'Requires overcoming energy barrier',
+          'Dust particles can act as nucleation sites',
+          'More nuclei → smaller crystals',
+        ],
+        visualDescription:
+          'Show small crystal nuclei forming in solution and growing larger over time.',
+      },
+      {
+        chapterNumber: 5,
+        title: 'Crystal Growth',
+        content:
+          'Once nuclei form, solute molecules continue to attach in an ordered manner, growing the crystal. The rate of growth depends on supersaturation and temperature.',
+        keyPoints: [
+          'Molecules add to existing crystal faces',
+          'Growth rate depends on supersaturation level',
+          'Slower cooling → larger crystals',
+          'Faster cooling → smaller crystals',
+          'Impurities can affect growth',
+        ],
+      },
+      {
+        chapterNumber: 6,
+        title: 'Crystal Structures',
+        content:
+          'Different compounds form crystals with characteristic shapes based on their molecular structure and bonding.',
+        keyPoints: [
+          'Cubic: NaCl (table salt)',
+          'Hexagonal: ice, quartz',
+          'Rhombic: copper sulfate',
+          'Needle-like: sucrose (sugar)',
+          'Crystal system determined by unit cell',
+        ],
+        visualDescription:
+          'Show different crystal shapes: cubic, hexagonal, needle, and rhombic crystals.',
+      },
+      {
+        chapterNumber: 7,
+        title: 'Recrystallization for Purification',
+        content:
+          'Recrystallization is a technique used to purify solid compounds by exploiting differences in solubility between the desired compound and impurities.',
+        keyPoints: [
+          'Dissolve impure solid in hot solvent',
+          'Filter to remove insoluble impurities',
+          'Cool slowly to crystallize pure compound',
+          'Impurities stay in solution (mother liquor)',
+          'Multiple recrystallizations increase purity',
+        ],
+      },
+    ],
+    relatedTopics: [
+      'Solubility',
+      'Phase Diagrams',
+      'Material Science',
+      'Purification Techniques',
+    ],
+    references: [
+      {
+        title: 'Royal Society of Chemistry - Growing Crystals',
+        url: 'https://edu.rsc.org/resources/growing-crystals',
+      },
+      {
+        title: 'Khan Academy - Solubility',
+        url: 'https://www.khanacademy.org/science/chemistry/states-of-matter-and-intermolecular-forces',
+      },
+    ],
+  },
+  {
+    experimentId: 'displacement',
+    experimentName: 'Metal Displacement',
+    category: 'chemistry',
+    description: 'Explore the reactivity series through metal displacement reactions',
+    difficulty: 'intermediate',
+    duration: 20,
+    objectives: [
+      'Understand the reactivity series of metals',
+      'Predict displacement reactions',
+      'Observe physical and chemical changes',
+      'Write ionic equations for displacement',
+    ],
+    prerequisites: ['Basic chemical reactions', 'Understanding of ions', 'Oxidation states'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What is Metal Displacement?',
+        content:
+          'A metal displacement reaction occurs when a more reactive metal displaces a less reactive metal from a compound, typically in solution. This is a type of single replacement reaction.',
+        keyPoints: [
+          'More reactive metal pushes out less reactive metal',
+          'Also called single replacement reaction',
+          'Involves electron transfer (redox)',
+          'More reactive metal gets oxidized',
+          'Less reactive metal gets reduced',
+        ],
+        formula: 'A + BX → AX + B\nwhere A is more reactive than B',
+        visualDescription:
+          'Show zinc metal being placed in copper sulfate solution, with copper metal forming.',
+      },
+      {
+        chapterNumber: 2,
+        title: 'The Reactivity Series',
+        content:
+          'The reactivity series ranks metals by their tendency to lose electrons and form positive ions. Metals higher in the series are more reactive and can displace metals lower in the series.',
+        keyPoints: [
+          'Potassium (K) - most reactive',
+          'Sodium (Na)',
+          'Calcium (Ca)',
+          'Magnesium (Mg)',
+          'Aluminum (Al)',
+          'Zinc (Zn)',
+          'Iron (Fe)',
+          'Hydrogen (H) - reference point',
+          'Copper (Cu)',
+          'Silver (Ag)',
+          'Gold (Au) - least reactive',
+        ],
+        visualDescription:
+          'Vertical chart showing metals arranged from most reactive (top) to least reactive (bottom).',
+      },
+      {
+        chapterNumber: 3,
+        title: 'Predicting Reactions',
+        content:
+          'Using the reactivity series, we can predict whether a displacement reaction will occur. A metal will only displace another metal that is below it in the series.',
+        keyPoints: [
+          'Higher metal displaces lower metal: reaction occurs',
+          'Lower metal cannot displace higher metal: no reaction',
+          'Zn + CuSO₄ → ZnSO₄ + Cu (Zn above Cu: reacts)',
+          'Cu + ZnSO₄ → No reaction (Cu below Zn)',
+          'Can also predict reactions with acids (above/below H)',
+        ],
+        examples: [
+          {
+            title: 'Example 1: Zinc in copper sulfate',
+            description: 'Will zinc react with copper sulfate solution?',
+            calculation: 'Zn is above Cu in reactivity series\n✓ Reaction occurs: Zn + CuSO₄ → ZnSO₄ + Cu',
+          },
+          {
+            title: 'Example 2: Copper in silver nitrate',
+            description: 'Will copper react with silver nitrate solution?',
+            calculation: 'Cu is above Ag in reactivity series\n✓ Reaction occurs: Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag',
+          },
+          {
+            title: 'Example 3: Silver in iron sulfate',
+            description: 'Will silver react with iron sulfate solution?',
+            calculation: 'Ag is below Fe in reactivity series\n✗ No reaction occurs',
+          },
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Ionic Equations',
+        content:
+          'Displacement reactions can be written as ionic equations, showing only the species that change during the reaction. This reveals the electron transfer.',
+        keyPoints: [
+          'Spectator ions are not included',
+          'Shows oxidation and reduction clearly',
+          'Electrons transfer from reactive to less reactive metal',
+          'Balance atoms and charges',
+          'Net ionic equation shows core reaction',
+        ],
+        formula: 'Full: Zn(s) + CuSO₄(aq) → ZnSO₄(aq) + Cu(s)\nIonic: Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s)',
+        examples: [
+          {
+            title: 'Example: Writing ionic equation',
+            description: 'Write the ionic equation for Mg + FeCl₂',
+            calculation: 'Full: Mg + FeCl₂ → MgCl₂ + Fe\nIonic: Mg(s) + Fe²⁺(aq) → Mg²⁺(aq) + Fe(s)',
+          },
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Observable Changes',
+        content:
+          'Displacement reactions often produce visible changes that indicate the reaction is occurring.',
+        keyPoints: [
+          'Color change in solution (e.g., blue CuSO₄ fades)',
+          'Metal appears on the reactive metal surface',
+          'Temperature change (usually exothermic)',
+          'Metal piece may decrease in size',
+          'Bubbling if H₂ gas produced (with acids)',
+        ],
+        visualDescription:
+          'Before/after comparison: blue copper sulfate solution becoming colorless with brown copper metal formed.',
+      },
+      {
+        chapterNumber: 6,
+        title: 'Redox Perspective',
+        content:
+          'Displacement reactions are redox reactions involving oxidation and reduction. The more reactive metal is oxidized while the less reactive metal ion is reduced.',
+        keyPoints: [
+          'Oxidation: loss of electrons (reactive metal)',
+          'Reduction: gain of electrons (metal ion)',
+          'OIL RIG: Oxidation Is Loss, Reduction Is Gain',
+          'Reducing agent: donates electrons (gets oxidized)',
+          'Oxidizing agent: accepts electrons (gets reduced)',
+        ],
+        formula: 'Zn → Zn²⁺ + 2e⁻ (oxidation)\nCu²⁺ + 2e⁻ → Cu (reduction)',
+      },
+      {
+        chapterNumber: 7,
+        title: 'Applications',
+        content:
+          'Understanding metal displacement has many practical applications in industry and everyday life.',
+        keyPoints: [
+          'Thermite reaction (Al + Fe₂O₃) for welding',
+          'Extracting metals from ores',
+          'Galvanization (zinc coating on iron)',
+          'Batteries and electrochemical cells',
+          'Corrosion prevention',
+        ],
+      },
+    ],
+    relatedTopics: [
+      'Redox Reactions',
+      'Electrochemistry',
+      'Metal Extraction',
+      'Corrosion',
+    ],
+    references: [
+      {
+        title: 'Khan Academy - Redox Reactions',
+        url: 'https://www.khanacademy.org/science/chemistry/oxidation-reduction',
+      },
+      {
+        title: 'BBC Bitesize - Reactivity Series',
+        url: 'https://www.bbc.co.uk/bitesize/guides/z84wjxs/revision/1',
       },
     ],
   },
