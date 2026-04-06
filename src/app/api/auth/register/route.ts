@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
-import bcrypt from 'bcryptjs';
+import { createAuthToken, setAuthCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const { name, email, password, role = 'student', studentId, institution, grade } = await request.json();
+    const { name, email, password, studentId, institution, grade } = await request.json();
 
     // Validation
     if (!name || !email || !password) {
       return NextResponse.json(
-        { error: 'Name, email, and password are required' },
+        { success: false, error: 'Name, email, and password are required' },
         { status: 400 }
       );
     }
@@ -20,41 +20,47 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { success: false, error: 'Email already registered' },
         { status: 409 }
       );
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
-      role,
+      password,
+      role: 'student',
       studentId,
       institution,
       grade,
     });
 
     // Return user without password
-    const userResponse = user.toObject();
-    delete userResponse.password;
+    const { password: _password, ...userResponse } = user.toObject();
 
-    return NextResponse.json(
-      { 
+    const token = createAuthToken({
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    const response = NextResponse.json(
+      {
         success: true, 
         message: 'Registration successful',
         data: userResponse 
       },
       { status: 201 }
     );
+
+    setAuthCookie(response, token);
+
+    return response;
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: error.message || 'Registration failed' },
+      { success: false, error: 'Registration failed' },
       { status: 500 }
     );
   }

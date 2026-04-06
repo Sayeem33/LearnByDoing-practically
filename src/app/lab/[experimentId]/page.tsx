@@ -244,7 +244,6 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user', // Replace with actual user ID from auth
           title: `${template?.name} - ${new Date().toLocaleDateString()}`,
           category: template?.category,
           experimentType: experimentType,
@@ -255,9 +254,17 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         }),
       });
 
+      if (response.status === 401) {
+        alert('Please log in to save experiments.');
+        router.push('/login');
+        return;
+      }
+
       const result = await response.json();
       if (result.success) {
         alert('Experiment saved successfully!');
+      } else {
+        alert(result.error || 'Failed to save experiment');
       }
     } catch (error) {
       console.error('Failed to save experiment:', error);

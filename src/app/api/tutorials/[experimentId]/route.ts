@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tutorial from '@/models/Tutorial';
+import { RBAC_POLICY, requireRoles } from '@/lib/rbac';
 
 /**
  * GET /api/tutorials/[experimentId]
@@ -19,7 +20,7 @@ export async function GET(
 
     if (!tutorial) {
       return NextResponse.json(
-        { error: 'Tutorial not found' },
+        { success: false, error: 'Tutorial not found' },
         { status: 404 }
       );
     }
@@ -31,7 +32,7 @@ export async function GET(
   } catch (error: any) {
     console.error('GET /api/tutorials/[experimentId] error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch tutorial' },
+      { success: false, error: 'Failed to fetch tutorial' },
       { status: 500 }
     );
   }
@@ -46,6 +47,11 @@ export async function PUT(
   { params }: { params: { experimentId: string } }
 ) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.tutorials.update);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
     const body = await request.json();
@@ -58,7 +64,7 @@ export async function PUT(
 
     if (!tutorial) {
       return NextResponse.json(
-        { error: 'Tutorial not found' },
+        { success: false, error: 'Tutorial not found' },
         { status: 404 }
       );
     }
@@ -70,7 +76,7 @@ export async function PUT(
   } catch (error: any) {
     console.error('PUT /api/tutorials/[experimentId] error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to update tutorial' },
+      { success: false, error: 'Failed to update tutorial' },
       { status: 500 }
     );
   }

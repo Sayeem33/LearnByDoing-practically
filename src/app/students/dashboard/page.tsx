@@ -14,10 +14,17 @@ interface Student {
   createdAt: string;
 }
 
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+}
+
 export default function StudentsDashboard() {
   const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,19 +35,52 @@ export default function StudentsDashboard() {
   });
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    setCurrentUser(JSON.parse(user));
-    fetchStudents();
+    verifySession();
   }, []);
+
+  const verifySession = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        router.push('/login');
+        return;
+      }
+
+      if (data.data.role !== 'admin') {
+        router.push('/instructor/dashboard');
+        return;
+      }
+
+      setCurrentUser(data.data);
+      fetchStudents();
+    } catch {
+      router.push('/login');
+    }
+  };
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/students');
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (response.status === 403) {
+        setError('Access denied: only admins can manage students.');
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -55,7 +95,13 @@ export default function StudentsDashboard() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore logout API errors and still clear local state
+    }
+
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     router.push('/login');
@@ -82,6 +128,16 @@ export default function StudentsDashboard() {
         body: JSON.stringify(editForm),
       });
 
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (response.status === 403) {
+        setError('Access denied: only admins can edit students.');
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setEditingId(null);
@@ -101,6 +157,16 @@ export default function StudentsDashboard() {
       const response = await fetch(`/api/students/${id}`, {
         method: 'DELETE',
       });
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (response.status === 403) {
+        setError('Access denied: only admins can delete students.');
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -258,12 +324,14 @@ export default function StudentsDashboard() {
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDelete(student._id)}
-                            className="text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Delete
-                          </button>
+                          {currentUser.role === 'admin' ? (
+                            <button
+                              onClick={() => handleDelete(student._id)}
+                              className="text-red-600 hover:text-red-700 font-medium"
+                            >
+                              Delete
+                            </button>
+                          ) : null}
                         </>
                       )}
                     </td>

@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node scripts/seedDatabase.ts",
+    "seed:admin": "ts-node scripts/ensureAdmin.ts",
     "seed:tutorials": "ts-node scripts/seedTutorials.ts"
   },
   "dependencies": {

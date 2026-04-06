@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [loginRole, setLoginRole] = useState<'student' | 'instructor'>('student');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -38,7 +39,10 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          loginRole,
+        }),
       });
 
       const data = await response.json();
@@ -51,7 +55,13 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.data));
       localStorage.setItem('userId', data.data._id);
 
-      router.push('/students/dashboard');
+      if (data.data.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (data.data.role === 'teacher') {
+        router.push('/instructor/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -70,6 +80,34 @@ export default function LoginPage() {
             {error}
           </div>
         )}
+
+        <div className="mb-5">
+          <p className="block text-sm font-medium text-gray-700 mb-2">Login as</p>
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setLoginRole('student')}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                loginRole === 'student'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Student
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginRole('instructor')}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                loginRole === 'instructor'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Instructor
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -114,8 +152,8 @@ export default function LoginPage() {
 
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-700 font-medium mb-2">Demo Credentials:</p>
-          <p className="text-sm text-gray-600">Email: john.smith@example.com</p>
-          <p className="text-sm text-gray-600">Password: password123</p>
+          <p className="text-sm text-gray-600">Student: john.smith@example.com / password123</p>
+          <p className="text-sm text-gray-600">Instructor: james.teacher@example.com / password123</p>
         </div>
       </div>
     </div>

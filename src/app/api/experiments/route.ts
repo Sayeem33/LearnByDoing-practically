@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Experiment from '@/models/Experiment';
+import { experimentAccessFilter, RBAC_POLICY, requireRoles } from '@/lib/rbac';
 
 /**
  * GET /api/experiments
@@ -8,22 +9,19 @@ import Experiment from '@/models/Experiment';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.experiments.list);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const category = searchParams.get('category');
     const status = searchParams.get('status');
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
-
     // Build query
-    const query: any = { userId };
+    const query: any = experimentAccessFilter(auth.user);
     if (category) query.category = category;
     if (status) query.status = status;
 
@@ -38,7 +36,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('GET /api/experiments error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch experiments', details: error.message },
+      { success: false, error: 'Failed to fetch experiments' },
       { status: 500 }
     );
   }
@@ -50,22 +48,27 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.experiments.create);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
     const body = await request.json();
-    const { userId, title, description, category, experimentType, state } = body;
+    const { title, description, category, experimentType, state } = body;
 
     // Validation
-    if (!userId || !title || !category || !experimentType) {
+    if (!title || !category || !experimentType) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
     // Create experiment
     const experiment = await Experiment.create({
-      userId,
+      userId: auth.user.id,
       title,
       description: description || '',
       category,
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('POST /api/experiments error:', error);
     return NextResponse.json(
-      { error: 'Failed to create experiment', details: error.message },
+      { success: false, error: 'Failed to create experiment' },
       { status: 500 }
     );
   }

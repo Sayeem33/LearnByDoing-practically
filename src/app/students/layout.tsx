@@ -1,20 +1,20 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from '@/lib/auth';
 
-export default async function HomePage() {
+export default async function StudentsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await getServerSession();
 
   if (!session) {
     redirect('/login');
   }
 
-  if (session.user.role === 'admin') {
-    redirect('/admin/dashboard');
-  }
-
-  if (session.user.role === 'teacher') {
+  if (session.user.role !== 'admin') {
     redirect('/instructor/dashboard');
   }
 
-  redirect('/dashboard');
+  return <>{children}</>;
 }

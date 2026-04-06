@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Experiment from '@/models/Experiment';
+import mongoose from 'mongoose';
+import { experimentAccessFilter, RBAC_POLICY, requireRoles } from '@/lib/rbac';
 
 /**
  * GET /api/experiments/[id]
@@ -11,16 +13,27 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.experiments.read);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
-    const experiment = await Experiment.findById(params.id).populate(
-      'userId',
-      'name email'
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid experiment ID' },
+        { status: 400 }
+      );
+    }
+
+    const experiment = await Experiment.findOne(
+      experimentAccessFilter(auth.user, params.id)
     );
 
     if (!experiment) {
       return NextResponse.json(
-        { error: 'Experiment not found' },
+        { success: false, error: 'Experiment not found' },
         { status: 404 }
       );
     }
@@ -32,7 +45,7 @@ export async function GET(
   } catch (error: any) {
     console.error('GET /api/experiments/[id] error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch experiment', details: error.message },
+      { success: false, error: 'Failed to fetch experiment' },
       { status: 500 }
     );
   }
@@ -47,7 +60,19 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.experiments.update);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
+
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid experiment ID' },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json();
     const { state, labReport, status, title, description } = body;
@@ -59,15 +84,15 @@ export async function PUT(
     if (title) updateData.title = title;
     if (description !== undefined) updateData.description = description;
 
-    const experiment = await Experiment.findByIdAndUpdate(
-      params.id,
+    const experiment = await Experiment.findOneAndUpdate(
+      experimentAccessFilter(auth.user, params.id),
       updateData,
       { new: true, runValidators: true }
     );
 
     if (!experiment) {
       return NextResponse.json(
-        { error: 'Experiment not found' },
+        { success: false, error: 'Experiment not found' },
         { status: 404 }
       );
     }
@@ -79,7 +104,7 @@ export async function PUT(
   } catch (error: any) {
     console.error('PUT /api/experiments/[id] error:', error);
     return NextResponse.json(
-      { error: 'Failed to update experiment', details: error.message },
+      { success: false, error: 'Failed to update experiment' },
       { status: 500 }
     );
   }
@@ -94,13 +119,27 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.experiments.delete);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
-    const experiment = await Experiment.findByIdAndDelete(params.id);
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid experiment ID' },
+        { status: 400 }
+      );
+    }
+
+    const experiment = await Experiment.findOneAndDelete(
+      experimentAccessFilter(auth.user, params.id)
+    );
 
     if (!experiment) {
       return NextResponse.json(
-        { error: 'Experiment not found' },
+        { success: false, error: 'Experiment not found' },
         { status: 404 }
       );
     }
@@ -112,7 +151,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error('DELETE /api/experiments/[id] error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete experiment', details: error.message },
+      { success: false, error: 'Failed to delete experiment' },
       { status: 500 }
     );
   }

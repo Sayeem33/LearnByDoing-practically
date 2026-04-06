@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import { RBAC_POLICY, requireRoles } from '@/lib/rbac';
 
 /**
  * GET /api/students
@@ -8,6 +9,11 @@ import User from '@/models/User';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.students.list);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
 
     const students = await User.find({ role: 'student' })
@@ -21,7 +27,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('GET /api/students error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch students' },
+      { success: false, error: 'Failed to fetch students' },
       { status: 500 }
     );
   }
@@ -33,12 +39,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRoles(request, RBAC_POLICY.students.create);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     await dbConnect();
     const { name, email, password, studentId, institution, grade } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
-        { error: 'Name, email, and password are required' },
+        { success: false, error: 'Name, email, and password are required' },
         { status: 400 }
       );
     }
@@ -46,7 +57,7 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { success: false, error: 'Email already registered' },
         { status: 409 }
       );
     }
@@ -61,8 +72,7 @@ export async function POST(request: NextRequest) {
       grade,
     });
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
+    const { password: _password, ...userResponse } = user.toObject();
 
     return NextResponse.json(
       { success: true, data: userResponse },
@@ -71,7 +81,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('POST /api/students error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to create student' },
+      { success: false, error: 'Failed to create student' },
       { status: 500 }
     );
   }

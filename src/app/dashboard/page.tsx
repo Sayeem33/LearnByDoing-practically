@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card, { CardContent, CardDescription, CardFooter, CardTitle } from '@/components/ui/Card';
 import { 
@@ -23,6 +24,7 @@ interface Experiment {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry'>('all');
@@ -36,7 +38,13 @@ export default function DashboardPage() {
   const fetchExperiments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/experiments?userId=demo-user');
+      const response = await fetch('/api/experiments');
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
       const result = await response.json();
       
       if (result.success) {
@@ -57,6 +65,11 @@ export default function DashboardPage() {
         method: 'DELETE',
       });
 
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
       if (response.ok) {
         setExperiments((prev) => prev.filter((exp) => exp._id !== id));
       }
@@ -64,6 +77,18 @@ export default function DashboardPage() {
       console.error('Failed to delete experiment:', error);
       alert('Failed to delete experiment');
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Continue with client cleanup even if API call fails.
+    }
+
+    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    router.push('/login');
   };
 
   const filteredExperiments =
@@ -144,6 +169,9 @@ export default function DashboardPage() {
               <Link href="/">
                 <Button variant="outline" size="sm">← Home</Button>
               </Link>
+              <Button variant="danger" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
             </div>
           </div>
         </div>

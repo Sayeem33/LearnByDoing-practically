@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
@@ -64,6 +68,13 @@ const seedData = [
     password: 'password123',
     role: 'teacher',
     institution: 'Oxford University',
+  },
+  {
+    name: 'System Administrator',
+    email: 'admin.simulab@example.com',
+    password: 'password123',
+    role: 'admin',
+    institution: 'SimuLab HQ',
   },
 ];
 

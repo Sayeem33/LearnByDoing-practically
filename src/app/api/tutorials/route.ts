@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('GET /api/tutorials error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch tutorials' },
+      { success: false, error: 'Failed to fetch tutorials' },
       { status: 500 }
     );
   }
