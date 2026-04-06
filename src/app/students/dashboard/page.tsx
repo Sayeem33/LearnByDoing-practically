@@ -126,12 +126,20 @@ export default function StudentsDashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Students Dashboard</h1>
             <p className="text-gray-600 mt-1">Welcome, {currentUser.name}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+            >
+              Back to Home
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
