@@ -28,7 +28,6 @@ export default function DashboardPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry'>('all');
-  const [activeTab, setActiveTab] = useState<'experiments' | 'tutorials'>('experiments');
 
   // Fetch user experiments
   useEffect(() => {
@@ -161,7 +160,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/tutorials/freefall">
+              <Link href="/tutorials">
                 <Button variant="ghost" size="sm" leftIcon={<BookOpen size={16} />}>
                   Tutorials
                 </Button>
@@ -232,31 +231,22 @@ export default function DashboardPage() {
         <section className="mb-6">
           <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
             <button
-              onClick={() => setActiveTab('experiments')}
-              className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                activeTab === 'experiments'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className="px-6 py-2.5 rounded-lg font-semibold text-sm transition-all bg-white text-blue-600 shadow-sm"
             >
               <span className="flex items-center gap-2">
                 <FlaskConical size={16} />
                 Experiments
               </span>
             </button>
-            <button
-              onClick={() => setActiveTab('tutorials')}
-              className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                activeTab === 'tutorials'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+            <Link
+              href="/tutorials"
+              className="px-6 py-2.5 rounded-lg font-semibold text-sm transition-all text-gray-600 hover:text-gray-900"
             >
               <span className="flex items-center gap-2">
                 <GraduationCap size={16} />
                 Tutorials
               </span>
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -289,7 +279,7 @@ export default function DashboardPage() {
                   <Link href={`/lab/${key}`} className="flex-1">
                     <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                       <Play size={14} />
-                      {activeTab === 'experiments' ? 'Start Lab' : 'Start'}
+                      Start Lab
                     </button>
                   </Link>
                   <Link href={`/tutorials/${key}`}>
@@ -332,7 +322,7 @@ export default function DashboardPage() {
                   <Link href={`/lab/${key}`} className="flex-1">
                     <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors">
                       <Play size={14} />
-                      {activeTab === 'experiments' ? 'Start Lab' : 'Start'}
+                      Start Lab
                     </button>
                   </Link>
                   <Link href={`/tutorials/${key}`}>
@@ -362,9 +352,9 @@ export default function DashboardPage() {
                   Start with our beginner-friendly Free Fall tutorial to learn the basics of physics simulations.
                 </p>
               </div>
-              <Link href="/tutorials/freefall">
+              <Link href="/tutorials">
                 <button className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-gray-100 transition-colors shadow-lg">
-                  Start Learning
+                  Browse Tutorials
                   <ArrowRight size={18} />
                 </button>
               </Link>

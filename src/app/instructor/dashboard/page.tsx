@@ -87,7 +87,7 @@ export default async function InstructorDashboardPage() {
             <CardDescription className="mb-4">
               Review experiment tutorials before delivering practical sessions.
             </CardDescription>
-            <Link href="/tutorials/freefall">
+            <Link href="/tutorials">
               <Button className="w-full" variant="outline">Go to Tutorials</Button>
             </Link>
           </Card>

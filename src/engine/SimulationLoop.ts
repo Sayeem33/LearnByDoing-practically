@@ -2,7 +2,7 @@ import { PHYSICS } from '@/lib/constants';
 
 export interface DataPoint {
   time: number;
-  [key: string]: number;
+  [key: string]: number | string;
 }
 
 export type DataCallback = (data: DataPoint) => void;

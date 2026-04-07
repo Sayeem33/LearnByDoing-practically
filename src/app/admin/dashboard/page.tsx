@@ -68,7 +68,7 @@ export default async function AdminDashboardPage() {
             <CardDescription className="mb-4">
               Manage experiment tutorials and core learning content with admin control.
             </CardDescription>
-            <Link href="/tutorials/freefall">
+            <Link href="/tutorials">
               <Button className="w-full" variant="outline">Open Tutorials</Button>
             </Link>
           </Card>

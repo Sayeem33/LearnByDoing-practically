@@ -14,7 +14,7 @@ export function useDataStream(config: DataStreamConfig = {}) {
     variables = ['time', 'value'],
   } = config;
 
-  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [dataPoints, setDataPoints] = useState<any[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const lastCaptureTime = useRef<number>(0);
 
@@ -84,7 +84,9 @@ export function useDataStream(config: DataStreamConfig = {}) {
     (variable: string) => {
       if (dataPoints.length === 0) return null;
 
-      const values = dataPoints.map((point) => point[variable]).filter((v) => v !== undefined);
+      const values = dataPoints
+        .map((point) => point[variable])
+        .filter((value): value is number => typeof value === 'number');
       
       if (values.length === 0) return null;
 

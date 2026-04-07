@@ -223,6 +223,7 @@ export class PhysicsEngine {
     return {
       id: objectId,
       type: obj.type,
+      metadata: obj.metadata,
       position: body.position,
       velocity: body.velocity,
       angle: body.angle,
