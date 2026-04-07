@@ -17,9 +17,9 @@ interface TutorialChapter {
 
 // Tutorial Interface
 export interface ITutorial extends Document {
-  experimentId: string; // freefall, projectilemotion, pendulum, collision, acidbase, titration
+  experimentId: string; // freefall, projectilemotion, pendulum, collision, acidbase, titration, llm, agenticai, rag
   experimentName: string;
-  category: 'physics' | 'chemistry';
+  category: 'physics' | 'chemistry' | 'technology';
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   duration: number; // in minutes
@@ -65,7 +65,7 @@ const TutorialSchema = new Schema<ITutorial>(
     },
     category: {
       type: String,
-      enum: ['physics', 'chemistry'],
+      enum: ['physics', 'chemistry', 'technology'],
       required: true,
     },
     description: {

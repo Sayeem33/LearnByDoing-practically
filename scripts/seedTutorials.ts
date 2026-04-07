@@ -1381,6 +1381,279 @@ const tutorialData = [
       },
     ],
   },
+  {
+    experimentId: 'llm',
+    experimentName: 'Large Language Models (LLM)',
+    category: 'technology',
+    description:
+      'Get a high-level view of how modern language models are trained, prompted, and used in real products',
+    difficulty: 'beginner',
+    duration: 18,
+    objectives: [
+      'Understand what an LLM is and what it is good at',
+      'Learn the difference between training, fine-tuning, and prompting',
+      'Recognize common limitations like hallucinations and context limits',
+      'See how LLMs fit into real applications and workflows',
+    ],
+    prerequisites: ['Basic understanding of AI concepts', 'Comfort reading technical examples'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What Is an LLM?',
+        content:
+          'A Large Language Model is an AI system trained on massive amounts of text to predict the next token in a sequence. Even though the training objective is simple, the result is a model that can summarize, answer questions, write code, translate, and reason over text at a surprisingly broad level.',
+        keyPoints: [
+          'LLMs generate text by predicting likely next tokens',
+          'Scale in data, parameters, and compute improves capability',
+          'They are general-purpose language interfaces',
+          'They do not truly store knowledge like a database',
+        ],
+      },
+      {
+        chapterNumber: 2,
+        title: 'How Training Works',
+        content:
+          'Training usually happens in stages. First, a base model learns language patterns from huge datasets. Then instruction tuning helps it follow user requests better. Some systems also use preference optimization to improve helpfulness, safety, and style.',
+        keyPoints: [
+          'Pretraining teaches broad language patterns',
+          'Instruction tuning teaches task-following behavior',
+          'Preference optimization shapes response quality',
+          'Training is expensive and done before deployment',
+        ],
+      },
+      {
+        chapterNumber: 3,
+        title: 'Prompting and Context',
+        content:
+          'Most users interact with LLMs through prompts. The prompt, prior conversation, and any attached context all influence the response. Clear instructions and relevant context often matter as much as the model itself.',
+        keyPoints: [
+          'Prompt quality strongly affects output quality',
+          'System instructions and user prompts both matter',
+          'Context windows are large but still limited',
+          'Examples in prompts can improve consistency',
+        ],
+        examples: [
+          {
+            title: 'Prompt upgrade',
+            description: 'Instead of “explain AI”, specify the audience, tone, depth, and desired format.',
+          },
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Strengths and Limitations',
+        content:
+          'LLMs are excellent at drafting, summarization, classification, coding help, and conversational interfaces. However, they can hallucinate facts, misread ambiguous requests, and sound confident even when wrong.',
+        keyPoints: [
+          'Great for language-heavy tasks',
+          'Weaknesses include hallucination and inconsistency',
+          'Confidence does not guarantee correctness',
+          'High-stakes use needs validation and review',
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Where LLMs Are Used',
+        content:
+          'Today, LLMs power chat assistants, coding copilots, knowledge bots, customer support tools, and document workflows. In practice, the most useful products combine the model with retrieval, application logic, guardrails, and analytics.',
+        keyPoints: [
+          'Many successful LLM products are workflow tools',
+          'Grounding and permissions matter in enterprise systems',
+          'Good UX and guardrails are part of the product',
+          'LLMs are often one layer in a bigger system',
+        ],
+      },
+    ],
+    relatedTopics: ['Prompt Engineering', 'RAG', 'Agentic AI', 'Model Evaluation'],
+    references: [
+      {
+        title: 'Attention Is All You Need',
+        url: 'https://arxiv.org/abs/1706.03762',
+      },
+      {
+        title: 'Prompting Guide',
+        url: 'https://www.promptingguide.ai/',
+      },
+    ],
+  },
+  {
+    experimentId: 'agenticai',
+    experimentName: 'Agentic AI',
+    category: 'technology',
+    description:
+      'Learn how AI agents plan, use tools, take actions, and complete multi-step tasks beyond simple chat',
+    difficulty: 'intermediate',
+    duration: 20,
+    objectives: [
+      'Understand what makes an AI system agentic',
+      'Learn the role of tools, memory, and planning',
+      'Compare chatbots, copilots, and autonomous agents',
+      'Identify common design risks in agent-based systems',
+    ],
+    prerequisites: ['Large Language Models (LLM)', 'Basic understanding of APIs and automation'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'What Makes AI Agentic?',
+        content:
+          'An agentic system does more than answer a question once. It can decide on next steps, call tools, observe outcomes, and continue working toward a goal. The core shift is from single-turn generation to goal-directed behavior.',
+        keyPoints: [
+          'Agents are goal-oriented, not just response-oriented',
+          'They often operate over multiple steps',
+          'They can use tools and react to feedback',
+          'Autonomy exists on a spectrum',
+        ],
+      },
+      {
+        chapterNumber: 2,
+        title: 'Planning, Memory, and Tools',
+        content:
+          'Most practical agents need planning to break down a task, memory to keep track of progress, and tools to interact with external systems. Without these, an agent is often just a chatbot with a fancy label.',
+        keyPoints: [
+          'Planning turns goals into executable steps',
+          'Memory helps preserve state across iterations',
+          'Tools let the agent search, calculate, fetch, or edit',
+          'Tool outputs often need validation',
+        ],
+      },
+      {
+        chapterNumber: 3,
+        title: 'Common Agent Loops',
+        content:
+          'A common pattern is Think -> Act -> Observe -> Repeat. The model chooses an action, a tool runs, the result comes back, and the model decides what to do next. This continues until the task is complete or a stop condition is reached.',
+        keyPoints: [
+          'Agent loops alternate reasoning and execution',
+          'Stop conditions prevent runaway behavior',
+          'Logs and traces help debugging',
+          'Human approval is useful for sensitive actions',
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Real-World Use Cases',
+        content:
+          'Agentic AI is useful in coding assistants, research assistants, workflow automation, internal enterprise tools, and support systems that need to coordinate several actions instead of giving a one-off response.',
+        keyPoints: [
+          'Strong use cases involve multi-step but bounded workflows',
+          'Agents shine when several tools must be coordinated',
+          'Clear success criteria improve reliability',
+          'Monitoring matters in production',
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Risks and Guardrails',
+        content:
+          'Agentic systems can fail in more ways than normal chat systems. They may pick the wrong tool, loop unnecessarily, take unsafe actions, or act on incomplete information. Good guardrails include permission checks, action scopes, cost limits, and human review.',
+        keyPoints: [
+          'More autonomy means more operational risk',
+          'Permissions and scope limits are essential',
+          'Human-in-the-loop design improves safety',
+          'Evaluation should test behavior, not just wording',
+        ],
+      },
+    ],
+    relatedTopics: ['LLM', 'Tool Use', 'Workflow Automation', 'AI Evaluation'],
+    references: [
+      {
+        title: 'ReAct: Synergizing Reasoning and Acting in Language Models',
+        url: 'https://arxiv.org/abs/2210.03629',
+      },
+      {
+        title: 'Toolformer',
+        url: 'https://arxiv.org/abs/2302.04761',
+      },
+    ],
+  },
+  {
+    experimentId: 'rag',
+    experimentName: 'Retrieval-Augmented Generation (RAG)',
+    category: 'technology',
+    description:
+      'See how retrieval systems help language models answer with fresher and more grounded information',
+    difficulty: 'intermediate',
+    duration: 16,
+    objectives: [
+      'Understand why RAG is used with LLM applications',
+      'Learn the high-level flow from query to retrieved context to answer',
+      'Recognize tradeoffs in chunking, ranking, and grounding',
+      'Understand where RAG helps and where it does not',
+    ],
+    prerequisites: ['Large Language Models (LLM)', 'Basic understanding of search systems'],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'Why RAG Exists',
+        content:
+          'Language models are powerful, but their built-in knowledge may be stale, incomplete, or not specific to your organization. RAG solves this by retrieving relevant documents at runtime and passing them into the model as context.',
+        keyPoints: [
+          'RAG improves grounding with external knowledge',
+          'It helps with freshness and domain-specific information',
+          'It reduces reliance on the model’s memory alone',
+          'It is widely used in enterprise AI systems',
+        ],
+      },
+      {
+        chapterNumber: 2,
+        title: 'The Basic RAG Pipeline',
+        content:
+          'A typical RAG flow is: ingest documents, split them into chunks, create embeddings or search indexes, retrieve relevant content for a user query, then ask the model to answer using that retrieved context.',
+        keyPoints: [
+          'Ingestion and chunking shape retrieval quality',
+          'Retrieval happens before generation',
+          'The model answers with grounded context',
+          'Better retrieval often matters more than better prompting',
+        ],
+      },
+      {
+        chapterNumber: 3,
+        title: 'Search, Embeddings, and Ranking',
+        content:
+          'Some RAG systems use keyword search, some use vector search, and many use a hybrid approach. Ranking matters because only a limited amount of retrieved text can fit into the model context window.',
+        keyPoints: [
+          'Vector search finds semantic similarity',
+          'Keyword search is still useful for exact terms',
+          'Hybrid retrieval often works best in practice',
+          'Ranking and re-ranking improve relevance',
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Common Failure Modes',
+        content:
+          'RAG can still fail if the wrong chunks are retrieved, the chunks are too broad or too small, or the model ignores the context. Good systems test retrieval quality and whether answers stay faithful to the sources.',
+        keyPoints: [
+          'Bad chunking can hurt answer quality',
+          'Wrong retrieval leads to wrong answers',
+          'The model can still hallucinate around retrieved facts',
+          'Citations and evaluations increase trust',
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Where RAG Fits Best',
+        content:
+          'RAG works especially well for knowledge bases, policy lookup, internal docs, manuals, and research assistants. It is most useful when answers should come from a trusted document set instead of pure model memory.',
+        keyPoints: [
+          'Best for grounded, document-centric tasks',
+          'Less useful when no reliable source corpus exists',
+          'RAG is often combined with agents',
+          'Access control matters in enterprise deployments',
+        ],
+      },
+    ],
+    relatedTopics: ['LLM', 'Embeddings', 'Search', 'Agentic AI'],
+    references: [
+      {
+        title: 'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks',
+        url: 'https://arxiv.org/abs/2005.11401',
+      },
+      {
+        title: 'Dense Passage Retrieval',
+        url: 'https://arxiv.org/abs/2004.04906',
+      },
+    ],
+  },
 ];
 
 async function seedTutorials() {
@@ -1395,7 +1668,7 @@ async function seedTutorials() {
     const tutorialSchema = new mongoose.Schema({
       experimentId: { type: String, unique: true, index: true },
       experimentName: String,
-      category: { type: String, enum: ['physics', 'chemistry'] },
+      category: { type: String, enum: ['physics', 'chemistry', 'technology'] },
       description: String,
       difficulty: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
       duration: Number,

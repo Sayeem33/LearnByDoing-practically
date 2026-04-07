@@ -25,7 +25,7 @@ interface Tutorial {
   _id: string;
   experimentId: string;
   experimentName: string;
-  category: 'physics' | 'chemistry';
+  category: 'physics' | 'chemistry' | 'technology';
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   duration: number;
@@ -44,12 +44,17 @@ const getTutorialIcon = (experimentId: string, category: Tutorial['category']) =
     flametest: <Flame className="text-orange-500" size={28} />,
     crystallization: <Sparkles className="text-cyan-500" size={28} />,
     displacement: <TrendingUp className="text-indigo-500" size={28} />,
+    llm: <BookOpen className="text-sky-500" size={28} />,
+    agenticai: <Zap className="text-fuchsia-500" size={28} />,
+    rag: <BarChart3 className="text-teal-500" size={28} />,
   };
 
   return icons[experimentId] || (
     category === 'physics'
       ? <Zap className="text-blue-600" size={28} />
-      : <Beaker className="text-purple-600" size={28} />
+      : category === 'chemistry'
+        ? <Beaker className="text-purple-600" size={28} />
+        : <GraduationCap className="text-indigo-600" size={28} />
   );
 };
 
@@ -71,7 +76,7 @@ export default function TutorialsPage() {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry'>('all');
+  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry' | 'technology'>('all');
 
   useEffect(() => {
     const fetchTutorials = async () => {
@@ -102,6 +107,7 @@ export default function TutorialsPage() {
 
   const physicsTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'physics');
   const chemistryTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'chemistry');
+  const technologyTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'technology');
   const beginnerCount = tutorials.filter((tutorial) => tutorial.difficulty === 'beginner').length;
 
   const renderTutorialSection = (
@@ -262,6 +268,19 @@ export default function TutorialsPage() {
                 </div>
               </div>
             </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-100 rounded-xl">
+                  <GraduationCap className="text-indigo-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tutorials.filter((tutorial) => tutorial.category === 'technology').length}
+                  </p>
+                  <p className="text-sm text-gray-500">Technology Tutorials</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -310,6 +329,14 @@ export default function TutorialsPage() {
               }`}
             >
               Chemistry
+            </button>
+            <button
+              onClick={() => setFilter('technology')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                filter === 'technology' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Technology
             </button>
           </div>
         </section>
@@ -370,6 +397,23 @@ export default function TutorialsPage() {
                 buttonBg: 'hover:bg-purple-50',
               },
               <Beaker size={20} />
+            )}
+
+            {renderTutorialSection(
+              'Technology Tutorials',
+              technologyTutorials.length,
+              technologyTutorials,
+              {
+                iconBg: 'bg-indigo-50',
+                iconText: 'text-indigo-600',
+                cardBorder: 'hover:border-indigo-200',
+                cardHover: 'hover:shadow-lg',
+                button: 'bg-indigo-600',
+                buttonHover: 'hover:bg-indigo-700',
+                buttonBorder: 'border-indigo-100 hover:border-indigo-300',
+                buttonBg: 'hover:bg-indigo-50',
+              },
+              <GraduationCap size={20} />
             )}
           </>
         )}

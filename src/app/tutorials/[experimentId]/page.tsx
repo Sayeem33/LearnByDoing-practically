@@ -104,6 +104,7 @@ export default function TutorialPage() {
   const categoryColors: { [key: string]: string } = {
     physics: 'bg-blue-100 text-blue-800',
     chemistry: 'bg-purple-100 text-purple-800',
+    technology: 'bg-indigo-100 text-indigo-800',
   };
 
   return (
