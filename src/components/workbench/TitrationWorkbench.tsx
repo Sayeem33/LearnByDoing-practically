@@ -7,6 +7,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Droplets, FlaskConical, TestTube, Target } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -45,22 +46,28 @@ const INDICATORS = [
 
 const CAPTURE_INTERVAL = 50; // Reduce to 50ms for better responsiveness
 
-export default function TitrationWorkbench() {
+export default function TitrationWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [chemistry] = useState(() => new ChemistryCore());
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [autoTitrate, setAutoTitrate] = useState(false);
-  const [time, setTime] = useState(0);
+  const [autoTitrate, setAutoTitrate] = useState(initialSnapshot?.autoTitrate || false);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
   // Selected indicator
-  const [selectedIndicator, setSelectedIndicator] = useState(0);
+  const [selectedIndicator, setSelectedIndicator] = useState(initialSnapshot?.selectedIndicator || 0);
 
   // Titration parameters
-  const [titration, setTitration] = useState<TitrationState>({
+  const [titration, setTitration] = useState<TitrationState>(() => initialSnapshot?.titration || {
     acidVolume: 25, // 25 mL HCl
     acidConcentration: 0.1, // 0.1 M
     baseVolume: 0, // Start with 0 mL NaOH added
@@ -73,8 +80,20 @@ export default function TitrationWorkbench() {
   });
 
   // Burette state
-  const [buretteOpen, setBuretteOpen] = useState(false);
-  const [dropRate, setDropRate] = useState(1); // drops per click or per interval
+  const [buretteOpen, setBuretteOpen] = useState(initialSnapshot?.buretteOpen || false);
+  const [dropRate, setDropRate] = useState(initialSnapshot?.dropRate || 1); // drops per click or per interval
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      autoTitrate,
+      time,
+      selectedIndicator,
+      titration,
+      buretteOpen,
+      dropRate,
+      dataPoints,
+    });
+  }, [onSnapshotChange, autoTitrate, time, selectedIndicator, titration, buretteOpen, dropRate, dataPoints]);
 
   // Calculate pH based on titration progress
   const calculatePH = useCallback((acidVol: number, acidConc: number, baseVol: number, baseConc: number): number => {
@@ -470,12 +489,12 @@ export default function TitrationWorkbench() {
   }, [running, titration.baseVolume, titration.ph, capture]);
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     setRunning(true);
     startCapture();
     // Capture initial data point
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       volumeAdded: titration.baseVolume,
       ph: titration.ph,
       temperature: titration.temperature,

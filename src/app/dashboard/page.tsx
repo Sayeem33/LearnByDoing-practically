@@ -18,7 +18,7 @@ interface Experiment {
   title: string;
   category: string;
   experimentType: string;
-  status: string;
+  status: 'draft' | 'completed' | 'submitted';
   createdAt: string;
   updatedAt: string;
 }
@@ -69,12 +69,52 @@ export default function DashboardPage() {
         return;
       }
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         setExperiments((prev) => prev.filter((exp) => exp._id !== id));
+        return;
       }
+
+      alert(result.error || 'Failed to delete experiment');
     } catch (error) {
       console.error('Failed to delete experiment:', error);
       alert('Failed to delete experiment');
+    }
+  };
+
+  const handleStatusUpdate = async (
+    id: string,
+    status: Experiment['status']
+  ) => {
+    try {
+      const response = await fetch(`/api/experiments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        alert(result.error || 'Failed to update experiment status');
+        return;
+      }
+
+      setExperiments((prev) =>
+        prev.map((exp) =>
+          exp._id === id ? { ...exp, status: result.data.status } : exp
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update experiment status:', error);
+      alert('Failed to update experiment status');
     }
   };
 
@@ -138,6 +178,27 @@ export default function DashboardPage() {
     };
     const diff = difficulties[key] || { level: 'Beginner', color: 'bg-green-100 text-green-700' };
     return <span className={`text-xs font-semibold px-2 py-1 rounded-full ${diff.color}`}>{diff.level}</span>;
+  };
+
+  const getStatusBadge = (status: Experiment['status']) => {
+    const styles: Record<Experiment['status'], string> = {
+      draft: 'bg-amber-100 text-amber-700',
+      completed: 'bg-green-100 text-green-700',
+      submitted: 'bg-indigo-100 text-indigo-700',
+    };
+
+    const labels: Record<Experiment['status'], string> = {
+      draft: 'Draft',
+      completed: 'Completed',
+      submitted: 'Submitted',
+    };
+
+    return (
+      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles[status]}`}>
+        {status === 'completed' ? '✓ ' : status === 'submitted' ? '↑ ' : '⏳ '}
+        {labels[status]}
+      </span>
+    );
   };
 
   return (
@@ -442,15 +503,7 @@ export default function DashboardPage() {
                         {exp.category}
                       </span>
                     </div>
-                    <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        exp.status === 'completed'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {exp.status === 'completed' ? '✓ Completed' : '⏳ In Progress'}
-                    </span>
+                    {getStatusBadge(exp.status)}
                   </div>
 
                   <h3 className="font-bold text-gray-900 mb-2">{exp.title}</h3>
@@ -467,7 +520,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex gap-2 pt-4 border-t border-gray-100">
-                    <Link href={`/lab/${exp.experimentType}`} className="flex-1">
+                    <Link href={`/lab/${exp.experimentType}?saved=${exp._id}`} className="flex-1">
                       <Button
                         variant="outline"
                         size="sm"
@@ -477,6 +530,22 @@ export default function DashboardPage() {
                         Continue
                       </Button>
                     </Link>
+                    {exp.status !== 'completed' && exp.status !== 'submitted' && (
+                      <button
+                        onClick={() => handleStatusUpdate(exp._id, 'completed')}
+                        className="px-3 py-2 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                      >
+                        Complete
+                      </button>
+                    )}
+                    {exp.status !== 'submitted' && (
+                      <button
+                        onClick={() => handleStatusUpdate(exp._id, 'submitted')}
+                        className="px-3 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                      >
+                        Submit
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(exp._id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"

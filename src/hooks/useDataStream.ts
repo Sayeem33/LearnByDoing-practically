@@ -5,6 +5,7 @@ export interface DataStreamConfig {
   maxPoints?: number;
   captureInterval?: number; // milliseconds
   variables?: string[];
+  initialDataPoints?: any[];
 }
 
 export function useDataStream(config: DataStreamConfig = {}) {
@@ -12,9 +13,10 @@ export function useDataStream(config: DataStreamConfig = {}) {
     maxPoints = 1000,
     captureInterval = 50,
     variables = ['time', 'value'],
+    initialDataPoints = [],
   } = config;
 
-  const [dataPoints, setDataPoints] = useState<any[]>([]);
+  const [dataPoints, setDataPoints] = useState<any[]>(() => initialDataPoints);
   const [isCapturing, setIsCapturing] = useState(false);
   const lastCaptureTime = useRef<number>(0);
 
@@ -104,6 +106,7 @@ export function useDataStream(config: DataStreamConfig = {}) {
 
   return {
     dataPoints,
+    setDataPoints,
     isCapturing,
     capture,
     startCapture,

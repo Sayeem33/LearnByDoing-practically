@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { title, description, category, experimentType, state } = body;
+    const { title, description, category, experimentType, state, status } = body;
 
     // Validation
     if (!title || !category || !experimentType) {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       category,
       experimentType,
       state: state || {},
-      status: 'draft',
+      status: ['draft', 'completed', 'submitted'].includes(status) ? status : 'draft',
     });
 
     return NextResponse.json(

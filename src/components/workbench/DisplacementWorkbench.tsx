@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, FlaskConical, ArrowRightLeft } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 500;
@@ -93,16 +94,22 @@ interface ReactionState {
   time: number;
 }
 
-export default function DisplacementWorkbench() {
+export default function DisplacementWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
-  const [selectedMetal, setSelectedMetal] = useState<string>('zinc');
-  const [selectedSolution, setSelectedSolution] = useState<string>('cuso4');
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
+  const [selectedMetal, setSelectedMetal] = useState<string>(initialSnapshot?.selectedMetal || 'zinc');
+  const [selectedSolution, setSelectedSolution] = useState<string>(initialSnapshot?.selectedSolution || 'cuso4');
   
-  const [state, setState] = useState<ReactionState>({
+  const [state, setState] = useState<ReactionState>(() => initialSnapshot?.state || {
     reactionProgress: 0,
     metalRemaining: 100,
     ionConcentration: 100,
@@ -110,13 +117,14 @@ export default function DisplacementWorkbench() {
     time: 0,
   });
 
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const [deposits, setDeposits] = useState<Deposit[]>([]);
-  const [reactionMessage, setReactionMessage] = useState<string>('');
+  const [bubbles, setBubbles] = useState<Bubble[]>(() => initialSnapshot?.bubbles || []);
+  const [deposits, setDeposits] = useState<Deposit[]>(() => initialSnapshot?.deposits || []);
+  const [reactionMessage, setReactionMessage] = useState<string>(initialSnapshot?.reactionMessage || '');
 
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Check if reaction will occur
   const willReact = useCallback((metalKey: string, solutionKey: string) => {
@@ -165,10 +173,28 @@ export default function DisplacementWorkbench() {
 
   // Initialize on mount and selection changes
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializeState();
     }
   }, [running, selectedMetal, selectedSolution, initializeState]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      selectedMetal,
+      selectedSolution,
+      state,
+      bubbles,
+      deposits,
+      reactionMessage,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, selectedMetal, selectedSolution, state, bubbles, deposits, reactionMessage, dataPoints]);
 
   // Simulation loop
   useEffect(() => {
@@ -515,18 +541,18 @@ export default function DisplacementWorkbench() {
   }, [running, state, capture]);
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
     startCapture();
 
     capture({
-      time: 0,
-      reactionProgress: 0,
-      metalRemaining: 100,
-      ionConcentration: 100,
-      temperature: 25,
+      time: parseFloat(time.toFixed(2)),
+      reactionProgress: state.reactionProgress,
+      metalRemaining: state.metalRemaining,
+      ionConcentration: state.ionConcentration,
+      temperature: state.temperature,
     });
   };
 

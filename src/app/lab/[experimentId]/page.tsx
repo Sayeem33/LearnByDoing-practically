@@ -27,6 +27,8 @@ import {
   Pause,
   RotateCcw,
   Save,
+  CheckCircle2,
+  Send,
   ArrowLeft,
   BookOpen,
   Info,
@@ -37,10 +39,13 @@ interface LabWorkspaceProps {
   params: { experimentId: string };
 }
 
+type ExperimentStatus = 'draft' | 'completed' | 'submitted';
+
 export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { experimentId } = params;
+  const savedExperimentParam = searchParams.get('saved');
 
   // Get experiment template - use query param 'type' if experimentId is 'new'
   const experimentType = experimentId === 'new' 
@@ -52,6 +57,11 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const [showTutorial, setShowTutorial] = useState(true);
   const [objects, setObjects] = useState<any[]>([]);
   const [height, setHeight] = useState<number>(100); // For free fall experiments
+  const [savedExperimentId, setSavedExperimentId] = useState<string | null>(savedExperimentParam);
+  const [experimentStatus, setExperimentStatus] = useState<ExperimentStatus>('draft');
+  const [isPersisting, setIsPersisting] = useState(false);
+  const [workbenchSnapshot, setWorkbenchSnapshot] = useState<any | null>(null);
+  const [isLoadingSavedExperiment, setIsLoadingSavedExperiment] = useState(Boolean(savedExperimentParam));
 
   // Physics simulation
   const {
@@ -66,51 +76,164 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   } = useSimulation((template?.category || 'physics') as 'physics' | 'chemistry');
 
   // Data collection
-  const { dataPoints, capture, startCapture, stopCapture, clearData, exportCSV } =
+  const { dataPoints, setDataPoints, capture, startCapture, stopCapture, clearData, exportCSV } =
     useDataStream({
       maxPoints: 1000,
       captureInterval: 50,
     });
 
-  // Apply template initial setup when physics engine becomes available
-  useEffect(() => {
-    if (!physicsEngine || !template?.initialSetup) return;
+  const dedicatedWorkbenchExperiments = new Set([
+    'acidbase',
+    'titration',
+    'collision',
+    'pendulum',
+    'projectilemotion',
+    'electrolysis',
+    'flametest',
+    'crystallization',
+    'displacement',
+  ]);
 
-    const setup = template.initialSetup;
+  const createPhysicsObjects = (sourceObjects: any[]) => {
+    if (!physicsEngine) return [];
+
     const created: any[] = [];
 
-    // Create initial physics objects if provided
-        if ('objects' in setup && Array.isArray((setup as any).objects)) {
-          const objs = (setup as any).objects as any[];
-          objs.forEach((obj: any) => {
-            let id: string | null = null;
-            switch (obj.type) {
-              case 'ball':
-                id = physicsEngine.createBall(obj.x || 100, obj.y || 100, obj.radius || 20, obj);
-                break;
-              case 'box':
-                id = physicsEngine.createBox(obj.x || 100, obj.y || 100, obj.width || 60, obj.height || 60, obj);
-                break;
-              case 'pendulum':
-                id = physicsEngine.createPendulum(obj.x || 100, obj.y || 100, obj.length || 150, obj);
-                break;
-              case 'cannon':
-                // Represent cannon as a stationary ball (projectile spawn point)
-                // Add autoLaunch flag defaulting to true unless explicitly disabled in template
-                const meta = { ...obj, autoLaunch: obj.autoLaunch === false ? false : true };
-                id = physicsEngine.createBall(obj.x || 50, obj.y || 400, obj.radius || 8, { isSensor: true, render: { fillStyle: '#222' }, metadata: meta });
-                break;
-              default:
-                break;
-            }
-    
-            if (id) created.push({ id, type: obj.type, x: obj.x, y: obj.y, meta: obj });
-          });
+    sourceObjects.forEach((obj: any) => {
+      let id: string | null = null;
+      const rawMeta = obj.metadata?.metadata || obj.meta || obj.metadata || obj;
+      const x = obj.position?.x ?? obj.x ?? 100;
+      const y = obj.position?.y ?? obj.y ?? 100;
+
+      switch (obj.type) {
+        case 'ball':
+          id = physicsEngine.createBall(x, y, obj.radius || rawMeta.radius || 20, rawMeta);
+          break;
+        case 'box':
+          id = physicsEngine.createBox(
+            x,
+            y,
+            obj.width || rawMeta.width || 60,
+            obj.height || rawMeta.height || 60,
+            rawMeta
+          );
+          break;
+        case 'ramp':
+          id = physicsEngine.createRamp(
+            x,
+            y,
+            obj.width || rawMeta.width || 200,
+            obj.angle || 30,
+            rawMeta
+          );
+          break;
+        case 'pendulum':
+          id = physicsEngine.createPendulum(x, y, obj.length || rawMeta.length || 150, rawMeta);
+          break;
+        case 'cannon': {
+          const meta = {
+            ...rawMeta,
+            autoLaunch: rawMeta.autoLaunch === false ? false : obj.autoLaunch === false ? false : true,
+          };
+          id = physicsEngine.createBall(
+            x || 50,
+            y || 400,
+            obj.radius || rawMeta.radius || 8,
+            { isSensor: true, render: { fillStyle: '#222' }, metadata: meta }
+          );
+          break;
+        }
+        default:
+          break;
+      }
+
+      if (id && obj.velocity) {
+        physicsEngine.setVelocity(id, obj.velocity);
+      }
+
+      if (id) {
+        created.push({
+          ...obj,
+          id,
+          x,
+          y,
+          meta: rawMeta,
+        });
+      }
+    });
+
+    return created;
+  };
+
+  useEffect(() => {
+    setSavedExperimentId(savedExperimentParam);
+  }, [savedExperimentParam]);
+
+  useEffect(() => {
+    const fetchSavedExperiment = async () => {
+      if (!savedExperimentParam) {
+        setExperimentStatus('draft');
+        setWorkbenchSnapshot(null);
+        setIsLoadingSavedExperiment(false);
+        return;
+      }
+
+      setIsLoadingSavedExperiment(true);
+
+      try {
+        const response = await fetch(`/api/experiments/${savedExperimentParam}`);
+        if (!response.ok) {
+          setWorkbenchSnapshot(null);
+          return;
         }
 
-    if (created.length > 0) setObjects((prev) => [...prev, ...created]);
+        const result = await response.json();
+        if (result.success && result.data?.status) {
+          const savedState = result.data.state || null;
+          setSavedExperimentId(result.data._id);
+          setExperimentStatus(result.data.status);
+          setWorkbenchSnapshot(savedState);
+
+          if (typeof savedState?.height === 'number') {
+            setHeight(savedState.height);
+          }
+
+          if (Array.isArray(savedState?.dataPoints)) {
+            setDataPoints(savedState.dataPoints);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch saved experiment:', error);
+      } finally {
+        setIsLoadingSavedExperiment(false);
+      }
+    };
+
+    fetchSavedExperiment();
+  }, [savedExperimentParam, setDataPoints]);
+
+  // Apply template initial setup when physics engine becomes available
+  useEffect(() => {
+    if (!physicsEngine || !template?.initialSetup || dedicatedWorkbenchExperiments.has(experimentType)) {
+      return;
+    }
+
+    const restoredObjects = Array.isArray(workbenchSnapshot?.objects)
+      ? workbenchSnapshot.objects
+      : null;
+    const setupObjects =
+      restoredObjects ||
+      ('objects' in template.initialSetup && Array.isArray((template.initialSetup as any).objects)
+        ? ((template.initialSetup as any).objects as any[])
+        : []);
+
+    if (setupObjects.length === 0) return;
+
+    physicsEngine.reset();
+    const created = createPhysicsObjects(setupObjects);
+    setObjects(created);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [physicsEngine, template?.initialSetup]);
+  }, [physicsEngine, template?.initialSetup, workbenchSnapshot?.objects, experimentType]);
 
   // Auto-launch projectile from cannon when simulation starts
   useEffect(() => {
@@ -237,40 +360,138 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     });
   };
 
-  // Save experiment
-  const handleSave = async () => {
+  const syncSavedExperimentUrl = (nextSavedId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('saved', nextSavedId);
+
+    if (experimentId === 'new') {
+      params.set('type', experimentType);
+    }
+
+    router.replace(`/lab/${experimentId}?${params.toString()}`);
+  };
+
+  const persistExperiment = async (nextStatus: ExperimentStatus = 'draft') => {
+    if (!template) return false;
+
+    setIsPersisting(true);
+
     try {
-      const response = await fetch('/api/experiments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `${template?.name} - ${new Date().toLocaleDateString()}`,
-          category: template?.category,
-          experimentType: experimentType,
-          state: {
-            objects,
+      const livePhysicsObjects =
+        !dedicatedWorkbenchExperiments.has(experimentType) && physicsEngine
+          ? physicsEngine.getAllObjectsData().map((obj: any) => ({
+              type: obj.type,
+              x: obj.position?.x,
+              y: obj.position?.y,
+              velocity: obj.velocity,
+              angle: obj.angle,
+              speed: obj.speed,
+              metadata: obj.metadata,
+            }))
+          : objects;
+
+      const nextState = workbenchSnapshot
+        ? { ...workbenchSnapshot, savedAt: new Date().toISOString() }
+        : {
+            objects: livePhysicsObjects,
             dataPoints,
-          },
-        }),
-      });
+            height,
+            savedAt: new Date().toISOString(),
+          };
+
+      const payload = {
+        title: `${template.name} - ${new Date().toLocaleDateString()}`,
+        description: template.description,
+        category: template.category,
+        experimentType,
+        status: nextStatus,
+        state: nextState,
+      };
+
+      const isUpdating = Boolean(savedExperimentId);
+      const response = await fetch(
+        isUpdating ? `/api/experiments/${savedExperimentId}` : '/api/experiments',
+        {
+          method: isUpdating ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (response.status === 401) {
-        alert('Please log in to save experiments.');
+        alert('Please log in to manage experiments.');
         router.push('/login');
-        return;
+        return false;
       }
 
       const result = await response.json();
-      if (result.success) {
-        alert('Experiment saved successfully!');
-      } else {
+      if (!response.ok || !result.success) {
         alert(result.error || 'Failed to save experiment');
+        return false;
       }
+
+      const persistedId = result.data?._id;
+      if (persistedId) {
+        setSavedExperimentId(persistedId);
+        syncSavedExperimentUrl(persistedId);
+      }
+
+      setExperimentStatus(result.data?.status || nextStatus);
+      return true;
     } catch (error) {
-      console.error('Failed to save experiment:', error);
+      console.error('Failed to persist experiment:', error);
       alert('Failed to save experiment');
+      return false;
+    } finally {
+      setIsPersisting(false);
     }
   };
+
+  const handleSave = async () => {
+    const success = await persistExperiment('draft');
+    if (success) {
+      alert(savedExperimentId ? 'Experiment updated successfully!' : 'Experiment saved successfully!');
+    }
+  };
+
+  const handleStatusChange = async (nextStatus: ExperimentStatus) => {
+    const success = await persistExperiment(nextStatus);
+    if (success) {
+      alert(`Experiment ${nextStatus} successfully!`);
+    }
+  };
+
+  const renderLifecycleActions = () => (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleSave}
+        leftIcon={<Save size={18} />}
+        disabled={isPersisting}
+      >
+        {savedExperimentId ? 'Update Draft' : 'Save Draft'}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleStatusChange('completed')}
+        leftIcon={<CheckCircle2 size={18} />}
+        disabled={isPersisting || experimentStatus === 'completed' || experimentStatus === 'submitted'}
+      >
+        Mark Completed
+      </Button>
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={() => handleStatusChange('submitted')}
+        leftIcon={<Send size={18} />}
+        disabled={isPersisting || experimentStatus === 'submitted'}
+      >
+        Submit
+      </Button>
+    </>
+  );
 
   if (!template) {
     return (
@@ -281,6 +502,19 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           </h1>
           <Button onClick={() => router.push('/')}>Go Home</Button>
         </div>
+      </div>
+    );
+  }
+
+  if (savedExperimentParam && isLoadingSavedExperiment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="max-w-md w-full text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Restoring saved experiment</h2>
+          <p className="text-sm text-gray-600">
+            Reloading your previous lab state and recorded data.
+          </p>
+        </Card>
       </div>
     );
   }
@@ -307,7 +541,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
               <Button
                 variant="ghost"
                 size="sm"
@@ -345,12 +580,48 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           )}
 
           {/* Render appropriate workbench based on experiment type */}
-          {experimentType === 'acidbase' && <AcidBaseWorkbench />}
-          {experimentType === 'titration' && <TitrationWorkbench />}
-          {experimentType === 'electrolysis' && <ElectrolysisWorkbench />}
-          {experimentType === 'flametest' && <FlameTestWorkbench />}
-          {experimentType === 'crystallization' && <CrystallizationWorkbench />}
-          {experimentType === 'displacement' && <DisplacementWorkbench />}
+          {experimentType === 'acidbase' && (
+            <AcidBaseWorkbench
+              key={savedExperimentId || 'acidbase-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
+          {experimentType === 'titration' && (
+            <TitrationWorkbench
+              key={savedExperimentId || 'titration-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
+          {experimentType === 'electrolysis' && (
+            <ElectrolysisWorkbench
+              key={savedExperimentId || 'electrolysis-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
+          {experimentType === 'flametest' && (
+            <FlameTestWorkbench
+              key={savedExperimentId || 'flametest-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
+          {experimentType === 'crystallization' && (
+            <CrystallizationWorkbench
+              key={savedExperimentId || 'crystallization-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
+          {experimentType === 'displacement' && (
+            <DisplacementWorkbench
+              key={savedExperimentId || 'displacement-new'}
+              initialSnapshot={workbenchSnapshot}
+              onSnapshotChange={setWorkbenchSnapshot}
+            />
+          )}
         </div>
       </div>
     );
@@ -378,7 +649,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
               <Button
                 variant="ghost"
                 size="sm"
@@ -416,7 +688,11 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           )}
 
           {/* Collision Workbench */}
-          <CollisionWorkbench />
+          <CollisionWorkbench
+            key={savedExperimentId || 'collision-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
         </div>
       </div>
     );
@@ -444,7 +720,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
               <Button
                 variant="ghost"
                 size="sm"
@@ -482,7 +759,11 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           )}
 
           {/* Pendulum Workbench */}
-          <PendulumWorkbench />
+          <PendulumWorkbench
+            key={savedExperimentId || 'pendulum-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
         </div>
       </div>
     );
@@ -510,7 +791,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
               <Button
                 variant="ghost"
                 size="sm"
@@ -548,7 +830,11 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           )}
 
           {/* Projectile Workbench */}
-          <ProjectileWorkbench />
+          <ProjectileWorkbench
+            key={savedExperimentId || 'projectilemotion-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
         </div>
       </div>
     );
@@ -818,7 +1104,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {renderLifecycleActions()}
             <Button
               variant="ghost"
               size="sm"
@@ -826,14 +1113,6 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               leftIcon={<BookOpen size={18} />}
             >
               {showTutorial ? 'Hide' : 'Show'} Tutorial
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              leftIcon={<Save size={18} />}
-            >
-              Save
             </Button>
           </div>
         </div>

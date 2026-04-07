@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Target, Crosshair } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -45,23 +46,29 @@ interface ProjectileState {
   landed: boolean;
 }
 
-export default function ProjectileWorkbench() {
+export default function ProjectileWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
 
   // User adjustable parameters
-  const [angle, setAngle] = useState(45); // degrees
-  const [speed, setSpeed] = useState(25); // m/s
-  const [initialHeight, setInitialHeight] = useState(2); // meters
+  const [angle, setAngle] = useState(initialSnapshot?.angle || 45); // degrees
+  const [speed, setSpeed] = useState(initialSnapshot?.speed || 25); // m/s
+  const [initialHeight, setInitialHeight] = useState(initialSnapshot?.initialHeight || 2); // meters
 
   // Projectile state
-  const [projectile, setProjectile] = useState<ProjectileState>({
+  const [projectile, setProjectile] = useState<ProjectileState>(() => initialSnapshot?.projectile || {
     x: 0,
     y: 2,
     vx: 0,
@@ -71,16 +78,17 @@ export default function ProjectileWorkbench() {
   });
 
   // Trajectory path for drawing
-  const [trajectory, setTrajectory] = useState<{ x: number; y: number }[]>([]);
+  const [trajectory, setTrajectory] = useState<{ x: number; y: number }[]>(() => initialSnapshot?.trajectory || []);
 
   // Dragging cannon angle
   const [draggingAngle, setDraggingAngle] = useState(false);
 
   // Measured values
-  const [measuredRange, setMeasuredRange] = useState<number | null>(null);
-  const [measuredMaxHeight, setMeasuredMaxHeight] = useState<number | null>(null);
-  const [measuredTimeOfFlight, setMeasuredTimeOfFlight] = useState<number | null>(null);
+  const [measuredRange, setMeasuredRange] = useState<number | null>(initialSnapshot?.measuredRange ?? null);
+  const [measuredMaxHeight, setMeasuredMaxHeight] = useState<number | null>(initialSnapshot?.measuredMaxHeight ?? null);
+  const [measuredTimeOfFlight, setMeasuredTimeOfFlight] = useState<number | null>(initialSnapshot?.measuredTimeOfFlight ?? null);
   const maxHeightRef = useRef<number>(0);
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Analytical calculations
   const analyticalRange = useMemo(() => {
@@ -128,10 +136,42 @@ export default function ProjectileWorkbench() {
 
   // Initialize on mount and parameter changes (when not running)
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializeProjectile();
     }
   }, [angle, speed, initialHeight, running, initializeProjectile]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      angle,
+      speed,
+      initialHeight,
+      projectile,
+      trajectory,
+      measuredRange,
+      measuredMaxHeight,
+      measuredTimeOfFlight,
+      dataPoints,
+    });
+  }, [
+    onSnapshotChange,
+    time,
+    angle,
+    speed,
+    initialHeight,
+    projectile,
+    trajectory,
+    measuredRange,
+    measuredMaxHeight,
+    measuredTimeOfFlight,
+    dataPoints,
+  ]);
 
   // Physics simulation
   useEffect(() => {
@@ -583,7 +623,7 @@ export default function ProjectileWorkbench() {
     setTrajectory([{ x: 0, y: initialHeight }]);
     maxHeightRef.current = initialHeight;
 
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
@@ -591,7 +631,7 @@ export default function ProjectileWorkbench() {
 
     // Capture initial state
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       x: 0,
       y: initialHeight,
       vx: parseFloat(v0x.toFixed(2)),
@@ -603,6 +643,14 @@ export default function ProjectileWorkbench() {
   const handleStop = () => {
     setRunning(false);
     stopCapture();
+  };
+
+  const handleResume = () => {
+    startTimeRef.current = Date.now() - time * 1000;
+    lastUpdateRef.current = 0;
+    lastCapturedTime.current = -1;
+    setRunning(true);
+    startCapture();
   };
 
   const handleReset = () => {
@@ -625,21 +673,28 @@ export default function ProjectileWorkbench() {
             </h3>
 
             <div className="flex flex-wrap gap-2 mb-4">
-              {!projectile.launched ? (
+              {!projectile.launched || projectile.landed ? (
                 <button
                   onClick={handleLaunch}
                   className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition"
                 >
                   <Play size={18} /> Launch
                 </button>
-              ) : !projectile.landed ? (
+              ) : running ? (
                 <button
                   onClick={handleStop}
                   className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition"
                 >
                   <Pause size={18} /> Stop
                 </button>
-              ) : null}
+              ) : (
+                <button
+                  onClick={handleResume}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition"
+                >
+                  <Play size={18} /> Resume
+                </button>
+              )}
               <button
                 onClick={handleReset}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition"

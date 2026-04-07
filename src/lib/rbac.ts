@@ -13,10 +13,10 @@ export const RBAC_POLICY = {
   },
   experiments: {
     list: ['student', 'teacher', 'admin'] as AllowedRoles,
-    create: ['admin'] as AllowedRoles,
+    create: ['student', 'teacher', 'admin'] as AllowedRoles,
     read: ['student', 'teacher', 'admin'] as AllowedRoles,
-    update: ['admin'] as AllowedRoles,
-    delete: ['admin'] as AllowedRoles,
+    update: ['student', 'teacher', 'admin'] as AllowedRoles,
+    delete: ['student', 'teacher', 'admin'] as AllowedRoles,
   },
   tutorials: {
     update: ['admin'] as AllowedRoles,

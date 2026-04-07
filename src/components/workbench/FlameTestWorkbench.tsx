@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Flame, FlaskConical } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 500;
@@ -88,20 +89,37 @@ interface FlameParticle {
   size: number;
 }
 
-export default function FlameTestWorkbench() {
+export default function FlameTestWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
-  const [selectedMetal, setSelectedMetal] = useState<string>('sodium');
-  const [intensity, setIntensity] = useState(1);
-  const [particles, setParticles] = useState<FlameParticle[]>([]);
-  const [testHistory, setTestHistory] = useState<string[]>([]);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
+  const [selectedMetal, setSelectedMetal] = useState<string>(initialSnapshot?.selectedMetal || 'sodium');
+  const [intensity, setIntensity] = useState(initialSnapshot?.intensity || 1);
+  const [particles, setParticles] = useState<FlameParticle[]>(() => initialSnapshot?.particles || []);
+  const [testHistory, setTestHistory] = useState<string[]>(() => initialSnapshot?.testHistory || []);
 
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      selectedMetal,
+      intensity,
+      particles,
+      testHistory,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, selectedMetal, intensity, particles, testHistory, dataPoints]);
 
   // Generate flame particles
   const generateParticles = useCallback((count: number, metal: typeof METALS[string]) => {
@@ -386,7 +404,7 @@ export default function FlameTestWorkbench() {
   }, [running, selectedMetal, intensity, particles, capture]);
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
@@ -398,7 +416,7 @@ export default function FlameTestWorkbench() {
 
     const metal = METALS[selectedMetal];
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       metal: metal.name,
       wavelength: metal.wavelength,
       intensity: parseFloat((intensity * 100).toFixed(1)),

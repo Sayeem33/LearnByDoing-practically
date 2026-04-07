@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Zap, Battery } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -36,22 +37,28 @@ interface ElectrolysisState {
   bubbles: { x: number; y: number; r: number; speed: number; electrode: 'cathode' | 'anode' }[];
 }
 
-export default function ElectrolysisWorkbench() {
+export default function ElectrolysisWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
 
   // User adjustable parameters
-  const [voltage, setVoltage] = useState(6); // Volts
-  const [electrolyteConc, setElectrolyteConc] = useState(0.5); // Molarity
+  const [voltage, setVoltage] = useState(initialSnapshot?.voltage || 6); // Volts
+  const [electrolyteConc, setElectrolyteConc] = useState(initialSnapshot?.electrolyteConc || 0.5); // Molarity
 
   // Electrolysis state
-  const [state, setState] = useState<ElectrolysisState>({
+  const [state, setState] = useState<ElectrolysisState>(() => initialSnapshot?.state || {
     voltage: 6,
     current: 0,
     h2Volume: 0,
@@ -59,6 +66,7 @@ export default function ElectrolysisWorkbench() {
     time: 0,
     bubbles: [],
   });
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Calculate current based on voltage and concentration (simplified)
   const calculateCurrent = useCallback((v: number, conc: number) => {
@@ -81,10 +89,25 @@ export default function ElectrolysisWorkbench() {
 
   // Initialize on mount and parameter changes (when not running)
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializeState();
     }
   }, [voltage, electrolyteConc, running, initializeState]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      voltage,
+      electrolyteConc,
+      state,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, voltage, electrolyteConc, state, dataPoints]);
 
   // Simulation loop
   useEffect(() => {
@@ -377,19 +400,19 @@ export default function ElectrolysisWorkbench() {
   }, [running, state, voltage, capture]);
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
     startCapture();
 
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       voltage: voltage,
-      current: 0,
-      h2Volume: 0,
-      o2Volume: 0,
-      ratio: 0,
+      current: state.current,
+      h2Volume: state.h2Volume,
+      o2Volume: state.o2Volume,
+      ratio: state.o2Volume > 0 ? state.h2Volume / state.o2Volume : 0,
     });
   };
 

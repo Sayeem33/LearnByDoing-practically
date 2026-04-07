@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Timer, Ruler } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -41,24 +42,30 @@ const PIVOT_X = CANVAS_WIDTH / 2;
 const PIVOT_Y = 80;
 const CAPTURE_INTERVAL = 50;
 
-export default function PendulumWorkbench() {
+export default function PendulumWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
 
   // User adjustable parameters
-  const [length, setLength] = useState(2.0); // meters
-  const [mass, setMass] = useState(1.0); // kg
-  const [initialAngle, setInitialAngle] = useState(30); // degrees
-  const [damping, setDamping] = useState(0.01); // damping coefficient
+  const [length, setLength] = useState(initialSnapshot?.length || 2.0); // meters
+  const [mass, setMass] = useState(initialSnapshot?.mass || 1.0); // kg
+  const [initialAngle, setInitialAngle] = useState(initialSnapshot?.initialAngle || 30); // degrees
+  const [damping, setDamping] = useState(initialSnapshot?.damping || 0.01); // damping coefficient
 
   // Pendulum state
-  const [pendulum, setPendulum] = useState<PendulumState>({
+  const [pendulum, setPendulum] = useState<PendulumState>(() => initialSnapshot?.pendulum || {
     angle: (30 * Math.PI) / 180,
     angularVelocity: 0,
     length: 2.0,
@@ -71,9 +78,10 @@ export default function PendulumWorkbench() {
   const [isDraggingBob, setIsDraggingBob] = useState(false);
 
   // Period measurement
-  const [measuredPeriod, setMeasuredPeriod] = useState<number | null>(null);
+  const [measuredPeriod, setMeasuredPeriod] = useState<number | null>(initialSnapshot?.measuredPeriod ?? null);
   const lastCrossTimeRef = useRef<number | null>(null);
   const crossDirectionRef = useRef<number>(0);
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Calculate theoretical period using small angle approximation
   const theoreticalPeriod = useCallback((L: number) => {
@@ -110,10 +118,28 @@ export default function PendulumWorkbench() {
 
   // Initialize on mount and parameter changes (when not running)
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializePendulum();
     }
   }, [length, mass, initialAngle, damping, running, initializePendulum]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      length,
+      mass,
+      initialAngle,
+      damping,
+      pendulum,
+      measuredPeriod,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, length, mass, initialAngle, damping, pendulum, measuredPeriod, dataPoints]);
 
   // Physics simulation using RK4 integration
   const simulateStep = useCallback((state: PendulumState, dt: number): PendulumState => {
@@ -495,7 +521,7 @@ export default function PendulumWorkbench() {
   };
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     lastCrossTimeRef.current = null;
@@ -506,7 +532,7 @@ export default function PendulumWorkbench() {
     // Capture initial state
     const energies = calculateEnergies(pendulum);
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       angle: parseFloat(((pendulum.angle * 180) / Math.PI).toFixed(2)),
       angularVelocity: 0,
       potentialEnergy: parseFloat(energies.pe.toFixed(3)),

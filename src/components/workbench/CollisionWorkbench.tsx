@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Circle, Zap } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -52,25 +53,31 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 400;
 const GROUND_Y = CANVAS_HEIGHT - 50;
 
-export default function CollisionWorkbench() {
+export default function CollisionWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
 
   // Ball parameters (user adjustable)
-  const [massA, setMassA] = useState(2);
-  const [massB, setMassB] = useState(2);
-  const [velocityA, setVelocityA] = useState(5);
-  const [velocityB, setVelocityB] = useState(-3);
-  const [restitution, setRestitution] = useState(1.0); // 1 = perfectly elastic
+  const [massA, setMassA] = useState(initialSnapshot?.massA || 2);
+  const [massB, setMassB] = useState(initialSnapshot?.massB || 2);
+  const [velocityA, setVelocityA] = useState(initialSnapshot?.velocityA || 5);
+  const [velocityB, setVelocityB] = useState(initialSnapshot?.velocityB || -3);
+  const [restitution, setRestitution] = useState(initialSnapshot?.restitution || 1.0); // 1 = perfectly elastic
 
   // Collision state
-  const [collision, setCollision] = useState<CollisionState>({
+  const [collision, setCollision] = useState<CollisionState>(() => initialSnapshot?.collision || {
     balls: [
       { id: 'A', x: 150, y: GROUND_Y - 30, vx: 5, vy: 0, radius: 30, mass: 2, color: '#ef4444', label: 'A' },
       { id: 'B', x: 650, y: GROUND_Y - 30, vx: -3, vy: 0, radius: 30, mass: 2, color: '#3b82f6', label: 'B' },
@@ -87,6 +94,7 @@ export default function CollisionWorkbench() {
   // Drag state
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Calculate momentum
   const calculateMomentum = useCallback((balls: Ball[]) => {
@@ -135,10 +143,28 @@ export default function CollisionWorkbench() {
 
   // Initialize on mount and when parameters change (if not running)
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializeBalls();
     }
   }, [massA, massB, velocityA, velocityB, restitution, running, initializeBalls]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      massA,
+      massB,
+      velocityA,
+      velocityB,
+      restitution,
+      collision,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, massA, massB, velocityA, velocityB, restitution, collision, dataPoints]);
 
   // Elastic collision physics
   const handleCollision = useCallback((ballA: Ball, ballB: Ball, e: number): [Ball, Ball] => {
@@ -501,7 +527,7 @@ export default function CollisionWorkbench() {
   };
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
@@ -510,7 +536,7 @@ export default function CollisionWorkbench() {
     const ballA = collision.balls.find(b => b.id === 'A');
     const ballB = collision.balls.find(b => b.id === 'B');
     capture({
-      time: 0,
+      time: parseFloat(time.toFixed(2)),
       momentumX: collision.initialMomentum.px,
       kineticEnergy: collision.initialKE,
       velocityA: ballA?.vx || 0,

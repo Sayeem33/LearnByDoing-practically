@@ -7,6 +7,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Beaker, Droplets, Thermometer, FlaskConical } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 // Helper function to draw rounded rectangle (polyfill for older browsers)
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -56,13 +57,30 @@ const AVAILABLE_CHEMICALS = [
 
 const CAPTURE_INTERVAL = 100; // ms
 
-export default function AcidBaseWorkbench() {
+const defaultBeakerState: BeakerState = {
+  chemicals: [],
+  mixedColor: '#06b6d4',
+  ph: 7,
+  temperature: 25,
+  volume: 0,
+  reactionMessage: '',
+  bubbling: false,
+  glowing: false,
+};
+
+export default function AcidBaseWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [chemistry] = useState(() => new ChemistryCore());
-  const { dataPoints, capture, clearData, exportCSV } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, exportCSV } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -71,22 +89,40 @@ export default function AcidBaseWorkbench() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // Beaker state
-  const [beaker, setBeaker] = useState<BeakerState>({
-    chemicals: [],
-    mixedColor: '#06b6d4',
-    ph: 7,
-    temperature: 25,
-    volume: 0,
-    reactionMessage: '',
-    bubbling: false,
-    glowing: false,
-  });
+  const [beaker, setBeaker] = useState<BeakerState>(() => initialSnapshot?.beaker || defaultBeakerState);
 
   // Reaction history
-  const [reactionHistory, setReactionHistory] = useState<string[]>([]);
+  const [reactionHistory, setReactionHistory] = useState<string[]>(() => initialSnapshot?.reactionHistory || []);
 
   // Beaker dimensions
   const beakerRect = { x: 300, y: 200, width: 200, height: 280 };
+
+  useEffect(() => {
+    chemistry.reset();
+
+    if (!initialSnapshot?.beaker?.chemicals?.length) return;
+
+    const restoredTemperature = initialSnapshot.beaker.temperature || 25;
+    const rebuiltChemicals = initialSnapshot.beaker.chemicals.map((chemical: ChemicalItem) => ({
+      ...chemical,
+      id: chemistry.addChemical(chemical.formula, chemical.amount / 100, restoredTemperature),
+    }));
+
+    setBeaker((prev) => ({
+      ...prev,
+      ...initialSnapshot.beaker,
+      chemicals: rebuiltChemicals,
+    }));
+  }, [chemistry, initialSnapshot]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      beaker,
+      reactionHistory,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, beaker, reactionHistory, dataPoints]);
 
   // Get pH color
   const getPHColor = (ph: number): string => {
@@ -525,7 +561,7 @@ export default function AcidBaseWorkbench() {
   };
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     setRunning(true);
   };
 
@@ -538,16 +574,7 @@ export default function AcidBaseWorkbench() {
     setTime(0);
     chemistry.reset();
     clearData();
-    setBeaker({
-      chemicals: [],
-      mixedColor: '#06b6d4',
-      ph: 7,
-      temperature: 25,
-      volume: 0,
-      reactionMessage: '',
-      bubbling: false,
-      glowing: false,
-    });
+    setBeaker(defaultBeakerState);
     setReactionHistory([]);
   };
 

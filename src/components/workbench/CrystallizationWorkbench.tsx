@@ -6,6 +6,7 @@ import LiveChart from '@/components/analysis/LiveChart';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import Card from '@/components/ui/Card';
 import { Play, Pause, RotateCcw, Snowflake, Thermometer } from 'lucide-react';
+import { WorkbenchPersistenceProps } from '@/components/workbench/persistence';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 500;
@@ -71,17 +72,23 @@ interface CrystallizationState {
   time: number;
 }
 
-export default function CrystallizationWorkbench() {
+export default function CrystallizationWorkbench({
+  initialSnapshot,
+  onSnapshotChange,
+}: WorkbenchPersistenceProps<any>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({ captureInterval: CAPTURE_INTERVAL });
+  const { dataPoints, capture, clearData, startCapture, stopCapture } = useDataStream({
+    captureInterval: CAPTURE_INTERVAL,
+    initialDataPoints: initialSnapshot?.dataPoints || [],
+  });
 
   const [running, setRunning] = useState(false);
-  const [time, setTime] = useState(0);
-  const [crystalType, setCrystalType] = useState<string>('cuso4');
-  const [coolingRate, setCoolingRate] = useState(0.5); // °C per second
-  const [initialConcentration, setInitialConcentration] = useState(1.5); // Supersaturation ratio
+  const [time, setTime] = useState(initialSnapshot?.time || 0);
+  const [crystalType, setCrystalType] = useState<string>(initialSnapshot?.crystalType || 'cuso4');
+  const [coolingRate, setCoolingRate] = useState(initialSnapshot?.coolingRate || 0.5); // °C per second
+  const [initialConcentration, setInitialConcentration] = useState(initialSnapshot?.initialConcentration || 1.5); // Supersaturation ratio
 
-  const [state, setState] = useState<CrystallizationState>({
+  const [state, setState] = useState<CrystallizationState>(() => initialSnapshot?.state || {
     temperature: 80,
     saturation: 150,
     crystalCount: 0,
@@ -89,11 +96,12 @@ export default function CrystallizationWorkbench() {
     time: 0,
   });
 
-  const [crystals, setCrystals] = useState<Crystal[]>([]);
+  const [crystals, setCrystals] = useState<Crystal[]>(() => initialSnapshot?.crystals || []);
 
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
+  const skipInitialSetupRef = useRef(Boolean(initialSnapshot));
 
   // Draw crystal shape
   const drawCrystal = useCallback((
@@ -204,10 +212,27 @@ export default function CrystallizationWorkbench() {
 
   // Initialize on mount
   useEffect(() => {
+    if (skipInitialSetupRef.current) {
+      skipInitialSetupRef.current = false;
+      return;
+    }
+
     if (!running) {
       initializeState();
     }
   }, [running, crystalType, initialConcentration, initializeState]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      time,
+      crystalType,
+      coolingRate,
+      initialConcentration,
+      state,
+      crystals,
+      dataPoints,
+    });
+  }, [onSnapshotChange, time, crystalType, coolingRate, initialConcentration, state, crystals, dataPoints]);
 
   // Simulation loop
   useEffect(() => {
@@ -488,18 +513,18 @@ export default function CrystallizationWorkbench() {
   }, [running, state, capture]);
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - time * 1000;
     lastUpdateRef.current = 0;
     lastCapturedTime.current = -1;
     setRunning(true);
     startCapture();
 
     capture({
-      time: 0,
-      temperature: 80,
-      saturation: initialConcentration * 100,
-      crystalCount: 0,
-      totalMass: 0,
+      time: parseFloat(time.toFixed(2)),
+      temperature: state.temperature,
+      saturation: state.saturation,
+      crystalCount: state.crystalCount,
+      totalMass: state.totalMass,
     });
   };
 
