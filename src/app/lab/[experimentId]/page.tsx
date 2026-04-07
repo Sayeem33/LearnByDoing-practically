@@ -19,6 +19,7 @@ import CrystallizationWorkbench from '@/components/workbench/CrystallizationWork
 import DisplacementWorkbench from '@/components/workbench/DisplacementWorkbench';
 import LiveChart from '@/components/analysis/LiveChart';
 import DataLogger from '@/components/analysis/DataLogger';
+import LabReportPanel from '@/components/analysis/LabReportPanel';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useDataStream } from '@/hooks/useDataStream';
@@ -34,6 +35,7 @@ import {
   Info,
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES, PHYSICS, CANVAS } from '@/lib/constants';
+import { generateReport } from '@/lib/reportGenerator';
 
 interface LabWorkspaceProps {
   params: { experimentId: string };
@@ -60,6 +62,10 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const [savedExperimentId, setSavedExperimentId] = useState<string | null>(savedExperimentParam);
   const [experimentStatus, setExperimentStatus] = useState<ExperimentStatus>('draft');
   const [isPersisting, setIsPersisting] = useState(false);
+  const [labReport, setLabReport] = useState('');
+  const [savedLabReport, setSavedLabReport] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isSavingReport, setIsSavingReport] = useState(false);
   const [workbenchSnapshot, setWorkbenchSnapshot] = useState<any | null>(null);
   const [isLoadingSavedExperiment, setIsLoadingSavedExperiment] = useState(Boolean(savedExperimentParam));
 
@@ -93,6 +99,11 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     'crystallization',
     'displacement',
   ]);
+
+  const activeDataPoints = Array.isArray(workbenchSnapshot?.dataPoints)
+    ? workbenchSnapshot.dataPoints
+    : dataPoints;
+  const isReportDirty = labReport !== savedLabReport;
 
   const createPhysicsObjects = (sourceObjects: any[]) => {
     if (!physicsEngine) return [];
@@ -174,6 +185,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
       if (!savedExperimentParam) {
         setExperimentStatus('draft');
         setWorkbenchSnapshot(null);
+        setLabReport('');
+        setSavedLabReport('');
         setIsLoadingSavedExperiment(false);
         return;
       }
@@ -193,6 +206,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           setSavedExperimentId(result.data._id);
           setExperimentStatus(result.data.status);
           setWorkbenchSnapshot(savedState);
+          setLabReport(result.data.labReport || '');
+          setSavedLabReport(result.data.labReport || '');
 
           if (typeof savedState?.height === 'number') {
             setHeight(savedState.height);
@@ -372,7 +387,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   };
 
   const persistExperiment = async (nextStatus: ExperimentStatus = 'draft') => {
-    if (!template) return false;
+    if (!template) return { success: false };
 
     setIsPersisting(true);
 
@@ -406,6 +421,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         experimentType,
         status: nextStatus,
         state: nextState,
+        labReport: labReport.trim(),
       };
 
       const isUpdating = Boolean(savedExperimentId);
@@ -421,13 +437,13 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
       if (response.status === 401) {
         alert('Please log in to manage experiments.');
         router.push('/login');
-        return false;
+        return { success: false };
       }
 
       const result = await response.json();
       if (!response.ok || !result.success) {
         alert(result.error || 'Failed to save experiment');
-        return false;
+        return { success: false };
       }
 
       const persistedId = result.data?._id;
@@ -437,29 +453,114 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
       }
 
       setExperimentStatus(result.data?.status || nextStatus);
-      return true;
+      setSavedLabReport(result.data?.labReport || labReport.trim());
+      return {
+        success: true,
+        persistedId,
+        status: result.data?.status || nextStatus,
+      };
     } catch (error) {
       console.error('Failed to persist experiment:', error);
       alert('Failed to save experiment');
-      return false;
+      return { success: false };
     } finally {
       setIsPersisting(false);
     }
   };
 
   const handleSave = async () => {
-    const success = await persistExperiment('draft');
-    if (success) {
+    const result = await persistExperiment('draft');
+    if (result.success) {
       alert(savedExperimentId ? 'Experiment updated successfully!' : 'Experiment saved successfully!');
     }
   };
 
   const handleStatusChange = async (nextStatus: ExperimentStatus) => {
-    const success = await persistExperiment(nextStatus);
-    if (success) {
+    if (nextStatus === 'submitted' && !labReport.trim()) {
+      alert('Generate and review your lab report before submitting this experiment.');
+      return;
+    }
+
+    const result = await persistExperiment(nextStatus);
+    if (result.success) {
       alert(`Experiment ${nextStatus} successfully!`);
     }
   };
+
+  const handleGenerateReport = () => {
+    if (!template) return;
+
+    setIsGeneratingReport(true);
+
+    try {
+      const report = generateReport({
+        title: savedExperimentId ? `${template.name} Lab Session` : template.name,
+        description: template.description,
+        experimentType,
+        category: template.category,
+        status: experimentStatus,
+        theory: template.theory,
+        objectives: template.objectives,
+        results: activeDataPoints,
+        snapshot: workbenchSnapshot || { objects, height, dataPoints: activeDataPoints },
+        generatedAt: new Date().toISOString(),
+      });
+
+      setLabReport(report);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const handleSaveReport = async () => {
+    const trimmedReport = labReport.trim();
+    if (!trimmedReport) {
+      alert('Generate or write a report before saving.');
+      return;
+    }
+
+    setIsSavingReport(true);
+
+    try {
+      const result = await persistExperiment('draft');
+      if (result.success) {
+        setSavedLabReport(trimmedReport);
+        alert('Lab report saved successfully.');
+      }
+    } finally {
+      setIsSavingReport(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!labReport.trim()) {
+      alert('There is no report to download yet.');
+      return;
+    }
+
+    const blob = new Blob([labReport], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${experimentType}_lab_report_${Date.now()}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const renderReportPanel = () => (
+    <LabReportPanel
+      report={labReport}
+      onChange={setLabReport}
+      onGenerate={handleGenerateReport}
+      onSave={handleSaveReport}
+      onDownload={handleDownloadReport}
+      isGenerating={isGeneratingReport}
+      isSaving={isSavingReport}
+      hasSavedExperiment={Boolean(savedExperimentId)}
+      isDirty={isReportDirty}
+      experimentStatus={experimentStatus}
+    />
+  );
 
   const renderLifecycleActions = () => (
     <>
@@ -486,7 +587,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         size="sm"
         onClick={() => handleStatusChange('submitted')}
         leftIcon={<Send size={18} />}
-        disabled={isPersisting || experimentStatus === 'submitted'}
+        disabled={isPersisting || experimentStatus === 'submitted' || !labReport.trim()}
       >
         Submit
       </Button>
@@ -581,46 +682,64 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
           {/* Render appropriate workbench based on experiment type */}
           {experimentType === 'acidbase' && (
-            <AcidBaseWorkbench
-              key={savedExperimentId || 'acidbase-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <AcidBaseWorkbench
+                key={savedExperimentId || 'acidbase-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
           {experimentType === 'titration' && (
-            <TitrationWorkbench
-              key={savedExperimentId || 'titration-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <TitrationWorkbench
+                key={savedExperimentId || 'titration-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
           {experimentType === 'electrolysis' && (
-            <ElectrolysisWorkbench
-              key={savedExperimentId || 'electrolysis-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <ElectrolysisWorkbench
+                key={savedExperimentId || 'electrolysis-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
           {experimentType === 'flametest' && (
-            <FlameTestWorkbench
-              key={savedExperimentId || 'flametest-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <FlameTestWorkbench
+                key={savedExperimentId || 'flametest-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
           {experimentType === 'crystallization' && (
-            <CrystallizationWorkbench
-              key={savedExperimentId || 'crystallization-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <CrystallizationWorkbench
+                key={savedExperimentId || 'crystallization-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
           {experimentType === 'displacement' && (
-            <DisplacementWorkbench
-              key={savedExperimentId || 'displacement-new'}
-              initialSnapshot={workbenchSnapshot}
-              onSnapshotChange={setWorkbenchSnapshot}
-            />
+            <>
+              <DisplacementWorkbench
+                key={savedExperimentId || 'displacement-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderReportPanel()}</div>
+            </>
           )}
         </div>
       </div>
@@ -693,6 +812,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -764,6 +884,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -835,6 +956,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -896,6 +1018,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <ElectrolysisWorkbench />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -957,6 +1080,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <FlameTestWorkbench />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -1018,6 +1142,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <CrystallizationWorkbench />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -1079,6 +1204,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <DisplacementWorkbench />
+          <div className="mt-6">{renderReportPanel()}</div>
         </div>
       </div>
     );
@@ -1250,7 +1376,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             {/* Live Chart - Velocity vs Time */}
             <div ref={chartRef}>
               <LiveChart
-                data={dataPoints}
+                data={activeDataPoints}
                 config={{
                   xKey: 'time',
                   yKey: 'velocity',
@@ -1264,7 +1390,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
             {/* Position Chart */}
             <LiveChart
-              data={dataPoints}
+              data={activeDataPoints}
               config={{
                 xKey: 'time',
                 yKey: 'position',
@@ -1279,15 +1405,17 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             <Card>
               <h3 className="font-bold text-gray-900 mb-3">📊 Export Data</h3>
               <ExportBtn
-                data={dataPoints}
+                data={activeDataPoints}
                 chartRef={chartRef}
                 experimentName={experimentType}
               />
             </Card>
 
+            {renderReportPanel()}
+
             {/* Data Logger */}
             <DataLogger
-              data={dataPoints}
+              data={activeDataPoints}
               columns={['time', 'velocity', 'position', 'speed']}
             />
           </div>

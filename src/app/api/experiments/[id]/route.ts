@@ -74,21 +74,7 @@ export async function PUT(
       );
     }
 
-    const body = await request.json();
-    const { state, labReport, status, title, description } = body;
-
-    const updateData: any = {};
-    if (state) updateData.state = state;
-    if (labReport !== undefined) updateData.labReport = labReport;
-    if (status) updateData.status = status;
-    if (title) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-
-    const experiment = await Experiment.findOneAndUpdate(
-      experimentAccessFilter(auth.user, params.id),
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const experiment = await Experiment.findOne(experimentAccessFilter(auth.user, params.id));
 
     if (!experiment) {
       return NextResponse.json(
@@ -96,6 +82,31 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    const body = await request.json();
+    const { state, labReport, status, title, description } = body;
+
+    if (status && !['draft', 'completed', 'submitted'].includes(status)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid experiment status' },
+        { status: 400 }
+      );
+    }
+
+    if (state !== undefined) experiment.state = state;
+    if (labReport !== undefined) experiment.labReport = String(labReport);
+    if (status) experiment.status = status;
+    if (title) experiment.title = title;
+    if (description !== undefined) experiment.description = description;
+
+    if (experiment.status === 'submitted' && !experiment.labReport?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'A lab report is required before submission' },
+        { status: 400 }
+      );
+    }
+
+    await experiment.save();
 
     return NextResponse.json(
       { success: true, data: experiment },

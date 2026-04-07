@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { title, description, category, experimentType, state, status } = body;
+    const { title, description, category, experimentType, state, status, labReport } = body;
 
     // Validation
     if (!title || !category || !experimentType) {
@@ -67,6 +67,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Create experiment
+    const normalizedStatus = ['draft', 'completed', 'submitted'].includes(status) ? status : 'draft';
+    const normalizedReport = typeof labReport === 'string' ? labReport.trim() : '';
+
+    if (normalizedStatus === 'submitted' && !normalizedReport) {
+      return NextResponse.json(
+        { success: false, error: 'A lab report is required before submission' },
+        { status: 400 }
+      );
+    }
+
     const experiment = await Experiment.create({
       userId: auth.user.id,
       title,
@@ -74,7 +84,8 @@ export async function POST(request: NextRequest) {
       category,
       experimentType,
       state: state || {},
-      status: ['draft', 'completed', 'submitted'].includes(status) ? status : 'draft',
+      status: normalizedStatus,
+      labReport: normalizedReport,
     });
 
     return NextResponse.json(
