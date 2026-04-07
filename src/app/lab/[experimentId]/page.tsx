@@ -20,6 +20,7 @@ import DisplacementWorkbench from '@/components/workbench/DisplacementWorkbench'
 import LiveChart from '@/components/analysis/LiveChart';
 import DataLogger from '@/components/analysis/DataLogger';
 import LabReportPanel from '@/components/analysis/LabReportPanel';
+import ValidationDashboard from '@/components/analysis/ValidationDashboard';
 import ExportBtn from '@/components/analysis/ExportBtn';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useDataStream } from '@/hooks/useDataStream';
@@ -36,6 +37,7 @@ import {
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES, PHYSICS, CANVAS } from '@/lib/constants';
 import { generateReport } from '@/lib/reportGenerator';
+import { getValidationSummary, SUPPORTED_VALIDATION_EXPERIMENTS } from '@/lib/validation';
 
 interface LabWorkspaceProps {
   params: { experimentId: string };
@@ -104,6 +106,19 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     ? workbenchSnapshot.dataPoints
     : dataPoints;
   const isReportDirty = labReport !== savedLabReport;
+  const currentAnalysisSnapshot = workbenchSnapshot
+    ? { ...workbenchSnapshot, dataPoints: activeDataPoints }
+    : {
+        objects,
+        height,
+        dataPoints: activeDataPoints,
+      };
+  const shouldShowValidationPanel = SUPPORTED_VALIDATION_EXPERIMENTS.has(experimentType);
+  const validationSummary = getValidationSummary(
+    experimentType,
+    currentAnalysisSnapshot,
+    activeDataPoints
+  );
 
   const createPhysicsObjects = (sourceObjects: any[]) => {
     if (!physicsEngine) return [];
@@ -405,14 +420,14 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             }))
           : objects;
 
-      const nextState = workbenchSnapshot
-        ? { ...workbenchSnapshot, savedAt: new Date().toISOString() }
-        : {
-            objects: livePhysicsObjects,
-            dataPoints,
-            height,
-            savedAt: new Date().toISOString(),
-          };
+      const nextState = {
+        ...currentAnalysisSnapshot,
+        objects: currentAnalysisSnapshot.objects ?? livePhysicsObjects,
+        dataPoints: activeDataPoints,
+        height: currentAnalysisSnapshot.height ?? height,
+        validation: validationSummary,
+        savedAt: new Date().toISOString(),
+      };
 
       const payload = {
         title: `${template.name} - ${new Date().toLocaleDateString()}`,
@@ -502,7 +517,10 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         theory: template.theory,
         objectives: template.objectives,
         results: activeDataPoints,
-        snapshot: workbenchSnapshot || { objects, height, dataPoints: activeDataPoints },
+        snapshot: {
+          ...currentAnalysisSnapshot,
+          validation: validationSummary,
+        },
         generatedAt: new Date().toISOString(),
       });
 
@@ -560,6 +578,15 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
       isDirty={isReportDirty}
       experimentStatus={experimentStatus}
     />
+  );
+
+  const renderAnalysisPanels = () => (
+    <div className="space-y-6">
+      {shouldShowValidationPanel ? (
+        <ValidationDashboard summary={validationSummary} />
+      ) : null}
+      {renderReportPanel()}
+    </div>
   );
 
   const renderLifecycleActions = () => (
@@ -688,7 +715,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
           {experimentType === 'titration' && (
@@ -698,7 +725,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
           {experimentType === 'electrolysis' && (
@@ -708,7 +735,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
           {experimentType === 'flametest' && (
@@ -718,7 +745,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
           {experimentType === 'crystallization' && (
@@ -728,7 +755,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
           {experimentType === 'displacement' && (
@@ -738,7 +765,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                 initialSnapshot={workbenchSnapshot}
                 onSnapshotChange={setWorkbenchSnapshot}
               />
-              <div className="mt-6">{renderReportPanel()}</div>
+              <div className="mt-6">{renderAnalysisPanels()}</div>
             </>
           )}
         </div>
@@ -812,7 +839,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -884,7 +911,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -956,7 +983,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -1018,7 +1045,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <ElectrolysisWorkbench />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -1080,7 +1107,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <FlameTestWorkbench />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -1142,7 +1169,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <CrystallizationWorkbench />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -1204,7 +1231,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             </Card>
           )}
           <DisplacementWorkbench />
-          <div className="mt-6">{renderReportPanel()}</div>
+          <div className="mt-6">{renderAnalysisPanels()}</div>
         </div>
       </div>
     );
@@ -1411,7 +1438,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
               />
             </Card>
 
-            {renderReportPanel()}
+            {renderAnalysisPanels()}
 
             {/* Data Logger */}
             <DataLogger

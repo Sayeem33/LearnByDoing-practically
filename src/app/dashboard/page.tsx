@@ -9,9 +9,10 @@ import {
   Plus, Beaker, Zap, Clock, Trash2, Eye, 
   BookOpen, FlaskConical, Atom, TrendingUp, 
   Award, Target, Flame, Droplets, Sparkles,
-  GraduationCap, Play, ArrowRight, Star, FileText
+  GraduationCap, Play, ArrowRight, Star, FileText, ShieldCheck
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES } from '@/lib/constants';
+import { ValidationSummary, VALIDATION_STATUS_META } from '@/lib/validation';
 
 interface Experiment {
   _id: string;
@@ -20,6 +21,9 @@ interface Experiment {
   experimentType: string;
   status: 'draft' | 'completed' | 'submitted';
   labReport?: string;
+  state?: {
+    validation?: ValidationSummary;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -145,6 +149,28 @@ export default function DashboardPage() {
   const completedExperiments = experiments.filter(e => e.status === 'completed').length;
   const physicsCount = experiments.filter(e => e.category === 'physics').length;
   const chemistryCount = experiments.filter(e => e.category === 'chemistry').length;
+  const experimentsWithValidation = experiments.filter(
+    (experiment) => experiment.state?.validation?.supported
+  );
+  const completedValidationRuns = experimentsWithValidation.filter(
+    (experiment) => (experiment.state?.validation?.metrics.length || 0) > 0
+  );
+  const validatedExperiments = experimentsWithValidation.filter(
+    (experiment) => experiment.state?.validation?.status === 'validated'
+  ).length;
+  const averageAccuracy =
+    completedValidationRuns.length > 0
+      ? completedValidationRuns.reduce((total, experiment) => {
+          return total + (experiment.state?.validation?.accuracyScore || 0);
+        }, 0) / completedValidationRuns.length
+      : null;
+  const averagePassRate =
+    completedValidationRuns.length > 0
+      ? completedValidationRuns.reduce((total, experiment) => {
+          return total + (experiment.state?.validation?.passRate || 0);
+        }, 0) / completedValidationRuns.length
+      : null;
+  const recentValidationRuns = [...completedValidationRuns].slice(0, 3);
 
   // Get icon for experiment type
   const getExperimentIcon = (key: string, category: string) => {
@@ -198,6 +224,24 @@ export default function DashboardPage() {
       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles[status]}`}>
         {status === 'completed' ? '✓ ' : status === 'submitted' ? '↑ ' : '⏳ '}
         {labels[status]}
+      </span>
+    );
+  };
+
+  const getValidationBadge = (summary?: ValidationSummary) => {
+    if (!summary?.supported || summary.metrics.length === 0) {
+      return (
+        <span className="text-xs font-semibold text-slate-500">
+          Validation pending
+        </span>
+      );
+    }
+
+    const meta = VALIDATION_STATUS_META[summary.status];
+
+    return (
+      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${meta.className}`}>
+        {meta.label}
       </span>
     );
   };
@@ -424,6 +468,99 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <ShieldCheck className="text-emerald-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Validation & Verification</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              demo-ready metrics
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5 mb-5">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Validated Labs</p>
+              <p className="text-2xl font-bold text-gray-900">{validatedExperiments}</p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Average Accuracy</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {averageAccuracy !== null ? `${averageAccuracy.toFixed(1)}%` : '--'}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Average Passed Checks</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {averagePassRate !== null ? `${averagePassRate.toFixed(1)}%` : '--'}
+              </p>
+            </div>
+          </div>
+
+          {recentValidationRuns.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No validation runs yet</h3>
+              <p className="text-gray-500 max-w-2xl mx-auto">
+                Save a supported lab such as Free Fall, Projectile Motion, Pendulum, Collision, or Electrolysis to see theoretical comparisons, error percentages, and verification status here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {recentValidationRuns.map((experiment) => {
+                const summary = experiment.state?.validation;
+
+                if (!summary) return null;
+
+                return (
+                  <div
+                    key={`${experiment._id}-validation`}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          {experiment.category}
+                        </p>
+                        <h3 className="font-bold text-gray-900">{experiment.title}</h3>
+                      </div>
+                      {getValidationBadge(summary)}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-sm mb-4">
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-gray-500 mb-1">Accuracy</p>
+                        <p className="font-bold text-gray-900">
+                          {summary.accuracyScore !== null ? `${summary.accuracyScore.toFixed(1)}%` : '--'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-gray-500 mb-1">Checks</p>
+                        <p className="font-bold text-gray-900">{summary.passRate.toFixed(1)}%</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-gray-500 mb-1">Metrics</p>
+                        <p className="font-bold text-gray-900">{summary.metrics.length}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {summary.metrics.slice(0, 2).map((metric) => (
+                        <div key={metric.key} className="flex items-center justify-between gap-3">
+                          <span className="text-gray-600">{metric.label}</span>
+                          <span className={metric.withinTolerance ? 'text-green-600 font-semibold' : 'text-amber-600 font-semibold'}>
+                            {metric.errorPercent !== null ? `${metric.errorPercent.toFixed(2)}%` : '--'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* Saved Experiments */}
         <section>
           <div className="flex items-center justify-between mb-6">
@@ -491,6 +628,7 @@ export default function DashboardPage() {
                 <div key={exp._id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                   {(() => {
                     const hasReport = Boolean(exp.labReport?.trim());
+                    const validation = exp.state?.validation;
 
                     return (
                       <>
@@ -528,6 +666,21 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                     <FileText size={14} className={hasReport ? 'text-green-600' : 'text-amber-500'} />
                     <span>{hasReport ? 'Lab report saved' : 'Lab report not started'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-sm text-gray-600 mb-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck
+                        size={14}
+                        className={validation?.status === 'validated' ? 'text-green-600' : 'text-slate-500'}
+                      />
+                      <span>
+                        {validation?.metrics.length
+                          ? `${validation.metrics.length} verification checks`
+                          : 'Verification not generated'}
+                      </span>
+                    </div>
+                    {getValidationBadge(validation)}
                   </div>
 
                   <div className="flex gap-2 pt-4 border-t border-gray-100">
