@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardDescription, CardTitle } from '@/components/ui/Card';
 import { getServerSession } from '@/lib/auth';
-import { FlaskConical, Users, BookOpen, PlusCircle } from 'lucide-react';
+import { ClipboardCheck, FlaskConical, Users, BookOpen, PlusCircle } from 'lucide-react';
 
 export default async function InstructorDashboardPage() {
   const session = await getServerSession();
@@ -89,6 +89,19 @@ export default async function InstructorDashboardPage() {
             </CardDescription>
             <Link href="/tutorials">
               <Button className="w-full" variant="outline">Go to Tutorials</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4">
+              <ClipboardCheck className="text-amber-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Review Submissions</CardTitle>
+            <CardDescription className="mb-4">
+              Open the instructor review queue to inspect reports, validation data, and give feedback.
+            </CardDescription>
+            <Link href="/instructor/reviews">
+              <Button className="w-full" variant="outline">Open Review Queue</Button>
             </Link>
           </Card>
         </div>
