@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardDescription, CardTitle } from '@/components/ui/Card';
 import { getServerSession } from '@/lib/auth';
-import { ClipboardCheck, FlaskConical, Users, BookOpen, PlusCircle } from 'lucide-react';
+import { ClipboardCheck, FlaskConical, Users, BookOpen, PlusCircle, ClipboardList, Presentation, PenTool } from 'lucide-react';
 
 export default async function InstructorDashboardPage() {
   const session = await getServerSession();
@@ -93,6 +93,32 @@ export default async function InstructorDashboardPage() {
           </Card>
 
           <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4">
+              <ClipboardList className="text-indigo-600" size={22} />
+            </div>
+            <CardTitle className="mb-2">Create Assignments</CardTitle>
+            <CardDescription className="mb-4">
+              Assign labs and tutorials to students or classes and track their progress.
+            </CardDescription>
+            <Link href="/instructor/assignments">
+              <Button className="w-full" variant="outline">Open Assignments</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center mb-4">
+              <PenTool className="text-cyan-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Authoring Studio</CardTitle>
+            <CardDescription className="mb-4">
+              Create MongoDB-backed lab or concept definitions without adding a new hardcoded module first.
+            </CardDescription>
+            <Link href="/instructor/authoring">
+              <Button className="w-full" variant="outline">Open Authoring Studio</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
             <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4">
               <ClipboardCheck className="text-amber-700" size={22} />
             </div>
@@ -102,6 +128,19 @@ export default async function InstructorDashboardPage() {
             </CardDescription>
             <Link href="/instructor/reviews">
               <Button className="w-full" variant="outline">Open Review Queue</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center mb-4">
+              <Presentation className="text-rose-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Demo Showcase</CardTitle>
+            <CardDescription className="mb-4">
+              Present modules, evidence, review records, and learning analytics in one place for viva/demo.
+            </CardDescription>
+            <Link href="/instructor/showcase">
+              <Button className="w-full" variant="outline">Open Showcase</Button>
             </Link>
           </Card>
         </div>
