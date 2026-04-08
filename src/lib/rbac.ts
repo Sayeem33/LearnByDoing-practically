@@ -21,6 +21,10 @@ export const RBAC_POLICY = {
   tutorials: {
     update: ['admin'] as AllowedRoles,
   },
+  reviews: {
+    list: ['teacher', 'admin'] as AllowedRoles,
+    update: ['teacher', 'admin'] as AllowedRoles,
+  },
 } as const;
 
 export function hasRole(userRole: UserRole, allowedRoles: AllowedRoles): boolean {
