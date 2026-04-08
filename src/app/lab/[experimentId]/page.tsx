@@ -19,6 +19,7 @@ import CrystallizationWorkbench from '@/components/workbench/CrystallizationWork
 import DisplacementWorkbench from '@/components/workbench/DisplacementWorkbench';
 import LiveChart from '@/components/analysis/LiveChart';
 import DataLogger from '@/components/analysis/DataLogger';
+import EvidencePanel from '@/components/analysis/EvidencePanel';
 import LabReportPanel from '@/components/analysis/LabReportPanel';
 import ValidationDashboard from '@/components/analysis/ValidationDashboard';
 import ExportBtn from '@/components/analysis/ExportBtn';
@@ -36,6 +37,7 @@ import {
   Info,
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES, PHYSICS, CANVAS } from '@/lib/constants';
+import { buildEvidenceSummary } from '@/lib/evidence';
 import { generateReport } from '@/lib/reportGenerator';
 import { getValidationSummary, SUPPORTED_VALIDATION_EXPERIMENTS } from '@/lib/validation';
 
@@ -44,6 +46,13 @@ interface LabWorkspaceProps {
 }
 
 type ExperimentStatus = 'draft' | 'completed' | 'submitted';
+type ReviewState = {
+  status: 'not_reviewed' | 'pending_review' | 'approved' | 'changes_requested';
+  feedback?: string;
+  reviewedBy?: string;
+  reviewerRole?: string;
+  reviewedAt?: string | null;
+};
 
 export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const router = useRouter();
@@ -70,6 +79,13 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const [isSavingReport, setIsSavingReport] = useState(false);
   const [workbenchSnapshot, setWorkbenchSnapshot] = useState<any | null>(null);
   const [isLoadingSavedExperiment, setIsLoadingSavedExperiment] = useState(Boolean(savedExperimentParam));
+  const [reviewState, setReviewState] = useState<ReviewState>({
+    status: 'not_reviewed',
+    feedback: '',
+    reviewedBy: '',
+    reviewerRole: '',
+    reviewedAt: null,
+  });
 
   // Physics simulation
   const {
@@ -119,6 +135,21 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     currentAnalysisSnapshot,
     activeDataPoints
   );
+  const evidenceSummary = buildEvidenceSummary({
+    title: template?.name || experimentType,
+    experimentType,
+    category: template?.category,
+    experimentStatus,
+    results: activeDataPoints,
+    snapshot: {
+      ...currentAnalysisSnapshot,
+      validation: validationSummary,
+    },
+    validation: validationSummary,
+    labReport,
+    savedExperimentId,
+    review: reviewState,
+  });
 
   const createPhysicsObjects = (sourceObjects: any[]) => {
     if (!physicsEngine) return [];
@@ -202,6 +233,13 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         setWorkbenchSnapshot(null);
         setLabReport('');
         setSavedLabReport('');
+        setReviewState({
+          status: 'not_reviewed',
+          feedback: '',
+          reviewedBy: '',
+          reviewerRole: '',
+          reviewedAt: null,
+        });
         setIsLoadingSavedExperiment(false);
         return;
       }
@@ -223,6 +261,15 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           setWorkbenchSnapshot(savedState);
           setLabReport(result.data.labReport || '');
           setSavedLabReport(result.data.labReport || '');
+          setReviewState(
+            result.data.review || {
+              status: 'not_reviewed',
+              feedback: '',
+              reviewedBy: '',
+              reviewerRole: '',
+              reviewedAt: null,
+            }
+          );
 
           if (typeof savedState?.height === 'number') {
             setHeight(savedState.height);
@@ -515,6 +562,9 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
       setExperimentStatus(result.data?.status || nextStatus);
       setSavedLabReport(result.data?.labReport || labReport.trim());
+      if (result.data?.review) {
+        setReviewState(result.data.review);
+      }
       await syncLabProgress({
         event:
           (result.data?.status || nextStatus) === 'submitted'
@@ -643,6 +693,41 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     <div className="space-y-6">
       {shouldShowValidationPanel ? (
         <ValidationDashboard summary={validationSummary} />
+      ) : null}
+      <EvidencePanel summary={evidenceSummary} />
+      {reviewState.status !== 'not_reviewed' || reviewState.feedback?.trim() ? (
+        <Card className="border border-slate-200 bg-gradient-to-br from-white to-amber-50">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Instructor Review</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Feedback and review status synced from the instructor queue.
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                reviewState.status === 'approved'
+                  ? 'bg-green-100 text-green-700'
+                  : reviewState.status === 'changes_requested'
+                    ? 'bg-rose-100 text-rose-700'
+                    : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {reviewState.status.replace(/_/g, ' ')}
+            </span>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm text-gray-700 whitespace-pre-wrap">
+            {reviewState.feedback?.trim() || 'No instructor feedback has been added yet.'}
+          </div>
+
+          {reviewState.reviewedAt ? (
+            <p className="mt-3 text-xs text-gray-500">
+              Reviewed by {reviewState.reviewedBy || 'reviewer'} on{' '}
+              {new Date(reviewState.reviewedAt).toLocaleString()}.
+            </p>
+          ) : null}
+        </Card>
       ) : null}
       {renderReportPanel()}
     </div>
