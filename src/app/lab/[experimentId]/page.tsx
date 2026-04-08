@@ -13,6 +13,14 @@ import TitrationWorkbench from '@/components/workbench/TitrationWorkbench';
 import CollisionWorkbench from '@/components/workbench/CollisionWorkbench';
 import PendulumWorkbench from '@/components/workbench/PendulumWorkbench';
 import ProjectileWorkbench from '@/components/workbench/ProjectileWorkbench';
+import ElectricFieldsWorkbench from '@/components/workbench/ElectricFieldsWorkbench';
+import SimpleCircuitsWorkbench from '@/components/workbench/SimpleCircuitsWorkbench';
+import WaveInterferenceWorkbench from '@/components/workbench/WaveInterferenceWorkbench';
+import RayOpticsWorkbench from '@/components/workbench/RayOpticsWorkbench';
+import PythagoreanWorkbench from '@/components/workbench/PythagoreanWorkbench';
+import TrigonometryWorkbench from '@/components/workbench/TrigonometryWorkbench';
+import CircleTheoremsWorkbench from '@/components/workbench/CircleTheoremsWorkbench';
+import DerivativeWorkbench from '@/components/workbench/DerivativeWorkbench';
 import ElectrolysisWorkbench from '@/components/workbench/ElectrolysisWorkbench';
 import FlameTestWorkbench from '@/components/workbench/FlameTestWorkbench';
 import CrystallizationWorkbench from '@/components/workbench/CrystallizationWorkbench';
@@ -36,8 +44,10 @@ import {
   BookOpen,
   Info,
 } from 'lucide-react';
-import { EXPERIMENT_TEMPLATES, PHYSICS, CANVAS } from '@/lib/constants';
+import { PHYSICS, CANVAS } from '@/lib/constants';
 import { buildEvidenceSummary } from '@/lib/evidence';
+import { normalizeConceptDefinition } from '@/lib/authoredDefinitions';
+import { getExperimentDefinition } from '@/lib/experimentDefinitions';
 import { generateReport } from '@/lib/reportGenerator';
 import { getValidationSummary, SUPPORTED_VALIDATION_EXPERIMENTS } from '@/lib/validation';
 
@@ -64,7 +74,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const experimentType = experimentId === 'new' 
     ? (searchParams.get('type') || 'freefall') 
     : experimentId;
-  const template = EXPERIMENT_TEMPLATES[experimentType as keyof typeof EXPERIMENT_TEMPLATES];
+  const builtInTemplate = getExperimentDefinition(experimentType as any);
 
   const [selectedTool, setSelectedTool] = useState<any>(null);
   const [showTutorial, setShowTutorial] = useState(true);
@@ -77,6 +87,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   const [savedLabReport, setSavedLabReport] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isSavingReport, setIsSavingReport] = useState(false);
+  const [dynamicTemplate, setDynamicTemplate] = useState<any | null>(null);
+  const [isLoadingDefinition, setIsLoadingDefinition] = useState(!builtInTemplate);
   const [workbenchSnapshot, setWorkbenchSnapshot] = useState<any | null>(null);
   const [isLoadingSavedExperiment, setIsLoadingSavedExperiment] = useState(Boolean(savedExperimentParam));
   const [reviewState, setReviewState] = useState<ReviewState>({
@@ -86,6 +98,8 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     reviewerRole: '',
     reviewedAt: null,
   });
+  const template = builtInTemplate || dynamicTemplate;
+  const isGenericModule = template?.workspace === 'generic';
 
   // Physics simulation
   const {
@@ -97,7 +111,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     stop,
     reset,
     addDataPoint,
-  } = useSimulation((template?.category || 'physics') as 'physics' | 'chemistry');
+  } = useSimulation(template?.category === 'chemistry' ? 'chemistry' : 'physics');
 
   // Data collection
   const { dataPoints, setDataPoints, capture, startCapture, stopCapture, clearData, exportCSV } =
@@ -112,11 +126,37 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     'collision',
     'pendulum',
     'projectilemotion',
+    'electricfields',
+    'simplecircuits',
+    'waveinterference',
+    'rayoptics',
+    'pythagorean',
+    'trigonometry',
+    'circletheorems',
+    'derivativeintuition',
     'electrolysis',
     'flametest',
     'crystallization',
     'displacement',
   ]);
+  const primaryChart = template?.charts?.[0] || {
+    xKey: 'time',
+    yKey: 'velocity',
+    xLabel: 'Time (s)',
+    yLabel: 'Velocity',
+    title: 'Primary Chart',
+  };
+  const secondaryChart = template?.charts?.[1] || {
+    xKey: 'time',
+    yKey: 'position',
+    xLabel: 'Time (s)',
+    yLabel: 'Position',
+    title: 'Secondary Chart',
+  };
+  const loggerColumns =
+    template?.outputMetrics?.length
+      ? template.outputMetrics.slice(0, 6).map((metric: any) => metric.key)
+      : ['time', 'velocity', 'position', 'speed'];
 
   const activeDataPoints = Array.isArray(workbenchSnapshot?.dataPoints)
     ? workbenchSnapshot.dataPoints
@@ -225,6 +265,36 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
   useEffect(() => {
     setSavedExperimentId(savedExperimentParam);
   }, [savedExperimentParam]);
+
+  useEffect(() => {
+    const fetchDynamicDefinition = async () => {
+      if (builtInTemplate) {
+        setDynamicTemplate(null);
+        setIsLoadingDefinition(false);
+        return;
+      }
+
+      setIsLoadingDefinition(true);
+
+      try {
+        const response = await fetch(`/api/authoring/${experimentType}`);
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          setDynamicTemplate(normalizeConceptDefinition(result.data));
+        } else {
+          setDynamicTemplate(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch authored concept definition:', error);
+        setDynamicTemplate(null);
+      } finally {
+        setIsLoadingDefinition(false);
+      }
+    };
+
+    fetchDynamicDefinition();
+  }, [builtInTemplate, experimentType]);
 
   useEffect(() => {
     const fetchSavedExperiment = async () => {
@@ -689,11 +759,111 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     />
   );
 
+  const renderDefinitionBlueprint = () => {
+    if (!template) return null;
+
+    return (
+      <Card className="border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-indigo-50">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Experiment Definition</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Schema-driven metadata for this lab engine entry: controls, formulas, charts, validation, and output metrics.
+            </p>
+          </div>
+          <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+            {template.workspace}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-500">Controls</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{template.controls.length}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-500">Formulas</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{template.formulas.length}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-500">Charts</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{template.charts.length}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-500">Output Metrics</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{template.outputMetrics.length}</div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h4 className="mb-3 text-sm font-semibold text-gray-900">Formula Schema</h4>
+            <div className="space-y-3 text-sm text-gray-700">
+              {template.formulas.map((formula: any) => (
+                <div key={formula.key} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="font-semibold text-gray-900">{formula.label}</div>
+                  <div className="mt-1 font-mono text-indigo-700">{formula.expression}</div>
+                  <p className="mt-1 text-gray-600">{formula.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h4 className="mb-3 text-sm font-semibold text-gray-900">Engine Blueprint</h4>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Tutorial Steps</p>
+                <div className="mt-2 space-y-2 text-sm text-gray-700">
+                  {template.tutorialSteps.map((step: any, index: number) => (
+                    <div key={`${step.title}-${index}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <div className="font-semibold text-gray-900">{index + 1}. {step.title}</div>
+                      <p className="mt-1 text-gray-600">{step.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Validation Rules</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {template.validationRules.map((rule: any) => (
+                    <span
+                      key={rule.key}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        rule.implemented ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {rule.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Chart Definitions</p>
+                <div className="mt-2 space-y-2 text-sm text-gray-700">
+                  {template.charts.map((chart: any) => (
+                    <div key={chart.key} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                      <span className="font-semibold text-gray-900">{chart.title}</span>
+                      <span className="text-gray-500"> · {chart.yKey} vs {chart.xKey}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   const renderAnalysisPanels = () => (
     <div className="space-y-6">
       {shouldShowValidationPanel ? (
         <ValidationDashboard summary={validationSummary} />
       ) : null}
+      {renderDefinitionBlueprint()}
       <EvidencePanel summary={evidenceSummary} />
       {reviewState.status !== 'not_reviewed' || reviewState.feedback?.trim() ? (
         <Card className="border border-slate-200 bg-gradient-to-br from-white to-amber-50">
@@ -765,6 +935,19 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     </>
   );
 
+  if (!template && isLoadingDefinition) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="max-w-md w-full text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Loading module</h2>
+          <p className="text-sm text-gray-600">
+            Fetching the experiment definition from the authoring studio.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   if (!template) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -791,8 +974,108 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     );
   }
 
+  if (template.category === 'math' && !isGenericModule) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj: string, idx: number) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {experimentType === 'pythagorean' && (
+            <>
+              <PythagoreanWorkbench
+                key={savedExperimentId || 'pythagorean-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderAnalysisPanels()}</div>
+            </>
+          )}
+          {experimentType === 'trigonometry' && (
+            <>
+              <TrigonometryWorkbench
+                key={savedExperimentId || 'trigonometry-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderAnalysisPanels()}</div>
+            </>
+          )}
+          {experimentType === 'circletheorems' && (
+            <>
+              <CircleTheoremsWorkbench
+                key={savedExperimentId || 'circletheorems-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderAnalysisPanels()}</div>
+            </>
+          )}
+          {experimentType === 'derivativeintuition' && (
+            <>
+              <DerivativeWorkbench
+                key={savedExperimentId || 'derivativeintuition-new'}
+                initialSnapshot={workbenchSnapshot}
+                onSnapshotChange={setWorkbenchSnapshot}
+              />
+              <div className="mt-6">{renderAnalysisPanels()}</div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // For chemistry experiments, render dedicated workbench
-  if (template.category === 'chemistry') {
+  if (template.category === 'chemistry' && !isGenericModule) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Header */}
@@ -841,7 +1124,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -967,7 +1250,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1039,7 +1322,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1111,7 +1394,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1124,6 +1407,270 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
           {/* Projectile Workbench */}
           <ProjectileWorkbench
             key={savedExperimentId || 'projectilemotion-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
+          <div className="mt-6">{renderAnalysisPanels()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (experimentType === 'electricfields') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj: string, idx: number) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <ElectricFieldsWorkbench
+            key={savedExperimentId || 'electricfields-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
+          <div className="mt-6">{renderAnalysisPanels()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (experimentType === 'simplecircuits') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj: string, idx: number) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <SimpleCircuitsWorkbench
+            key={savedExperimentId || 'simplecircuits-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
+          <div className="mt-6">{renderAnalysisPanels()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (experimentType === 'waveinterference') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj: string, idx: number) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <WaveInterferenceWorkbench
+            key={savedExperimentId || 'waveinterference-new'}
+            initialSnapshot={workbenchSnapshot}
+            onSnapshotChange={setWorkbenchSnapshot}
+          />
+          <div className="mt-6">{renderAnalysisPanels()}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (experimentType === 'rayoptics') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                leftIcon={<ArrowLeft size={18} />}
+              >
+                Back
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {renderLifecycleActions()}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(!showTutorial)}
+                leftIcon={<BookOpen size={18} />}
+              >
+                {showTutorial ? 'Hide' : 'Show'} Tutorial
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {showTutorial && (
+            <Card variant="glass" className="mb-6">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-600 flex-shrink-0" size={24} />
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Theory & Objectives</h3>
+                  <p className="text-sm text-gray-700 mb-3">{template.theory}</p>
+                  <div className="text-sm">
+                    <strong className="text-gray-900">Learning Objectives:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      {template.objectives.map((obj: string, idx: number) => (
+                        <li key={idx}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <RayOpticsWorkbench
+            key={savedExperimentId || 'rayoptics-new'}
             initialSnapshot={workbenchSnapshot}
             onSnapshotChange={setWorkbenchSnapshot}
           />
@@ -1179,7 +1726,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1241,7 +1788,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1303,7 +1850,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1365,7 +1912,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                   <div className="text-sm">
                     <strong className="text-gray-900">Learning Objectives:</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                      {template.objectives.map((obj, idx) => (
+                      {template.objectives.map((obj: string, idx: number) => (
                         <li key={idx}>{obj}</li>
                       ))}
                     </ul>
@@ -1419,11 +1966,22 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
         <div className="grid lg:grid-cols-12 gap-6">
           {/* Left Sidebar - Toolbar */}
           <div className="lg:col-span-2">
-            <Toolbar
-              category={template.category as any}
-              onToolSelect={setSelectedTool}
-              selectedTool={selectedTool}
-            />
+            {template.category === 'math' ? (
+              <Card variant="glass" padding="sm">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  Math Module
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  This generic math concept uses the saved definition, charts, and tutorial chapters instead of a draggable tool palette.
+                </p>
+              </Card>
+            ) : (
+              <Toolbar
+                category={template.category as any}
+                onToolSelect={setSelectedTool}
+                selectedTool={selectedTool}
+              />
+            )}
           </div>
 
           {/* Main Content */}
@@ -1441,7 +1999,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
                     <div className="text-sm">
                       <strong className="text-gray-900">Learning Objectives:</strong>
                       <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
-                        {template.objectives.map((obj, idx) => (
+                        {template.objectives.map((obj: string, idx: number) => (
                           <li key={idx}>{obj}</li>
                         ))}
                       </ul>
@@ -1546,28 +2104,28 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
             {/* Live Chart - Velocity vs Time */}
             <div ref={chartRef}>
-              <LiveChart
-                data={activeDataPoints}
-                config={{
-                  xKey: 'time',
-                  yKey: 'velocity',
-                  xLabel: 'Time (s)',
-                  yLabel: 'Velocity (m/s)',
-                  title: 'Velocity vs Time',
-                  color: '#3b82f6',
-                }}
-              />
+            <LiveChart
+              data={activeDataPoints}
+              config={{
+                xKey: primaryChart.xKey,
+                yKey: primaryChart.yKey,
+                xLabel: primaryChart.xLabel,
+                yLabel: primaryChart.yLabel,
+                title: primaryChart.title,
+                color: '#3b82f6',
+              }}
+            />
             </div>
 
             {/* Position Chart */}
             <LiveChart
               data={activeDataPoints}
               config={{
-                xKey: 'time',
-                yKey: 'position',
-                xLabel: 'Time (s)',
-                yLabel: 'Position (m)',
-                title: 'Position vs Time',
+                xKey: secondaryChart.xKey,
+                yKey: secondaryChart.yKey,
+                xLabel: secondaryChart.xLabel,
+                yLabel: secondaryChart.yLabel,
+                title: secondaryChart.title,
                 color: '#10b981',
               }}
             />
@@ -1587,7 +2145,7 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
             {/* Data Logger */}
             <DataLogger
               data={activeDataPoints}
-              columns={['time', 'velocity', 'position', 'speed']}
+              columns={loggerColumns}
             />
           </div>
         </div>
