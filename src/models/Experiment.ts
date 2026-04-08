@@ -45,6 +45,15 @@ interface ExperimentState {
     yAxis: string;
     title: string;
   };
+  [key: string]: any;
+}
+
+export interface ExperimentReview {
+  status: 'not_reviewed' | 'pending_review' | 'approved' | 'changes_requested';
+  feedback?: string;
+  reviewedBy?: string;
+  reviewerRole?: 'teacher' | 'admin' | '';
+  reviewedAt?: Date | null;
 }
 
 export interface IExperiment extends Document {
@@ -55,6 +64,7 @@ export interface IExperiment extends Document {
   experimentType: string;
   state: ExperimentState;
   labReport?: string;
+  review: ExperimentReview;
   isTemplate: boolean;
   templateCreatedBy?: mongoose.Types.ObjectId;
   tags?: string[];
@@ -102,6 +112,30 @@ const ExperimentSchema = new Schema<IExperiment>(
     labReport: {
       type: String,
       default: '',
+    },
+    review: {
+      status: {
+        type: String,
+        enum: ['not_reviewed', 'pending_review', 'approved', 'changes_requested'],
+        default: 'not_reviewed',
+      },
+      feedback: {
+        type: String,
+        default: '',
+      },
+      reviewedBy: {
+        type: String,
+        default: '',
+      },
+      reviewerRole: {
+        type: String,
+        enum: ['teacher', 'admin', ''],
+        default: '',
+      },
+      reviewedAt: {
+        type: Date,
+        default: null,
+      },
     },
     isTemplate: {
       type: Boolean,
