@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardDescription, CardTitle } from '@/components/ui/Card';
 import { getServerSession } from '@/lib/auth';
-import { ClipboardCheck, Database, Users, BookOpen, ShieldAlert, PlusCircle } from 'lucide-react';
+import { ClipboardCheck, Database, Users, BookOpen, ShieldAlert, PlusCircle, ClipboardList, PenTool, Presentation } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession();
@@ -74,6 +74,32 @@ export default async function AdminDashboardPage() {
           </Card>
 
           <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4">
+              <ClipboardList className="text-indigo-600" size={22} />
+            </div>
+            <CardTitle className="mb-2">Assignment Workflow</CardTitle>
+            <CardDescription className="mb-4">
+              Create assignments from labs or tutorials and monitor class-level completion.
+            </CardDescription>
+            <Link href="/instructor/assignments">
+              <Button className="w-full" variant="outline">Open Assignments</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center mb-4">
+              <PenTool className="text-cyan-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Authoring Studio</CardTitle>
+            <CardDescription className="mb-4">
+              Create new module definitions and sync tutorials without changing the codebase for each new idea.
+            </CardDescription>
+            <Link href="/instructor/authoring">
+              <Button className="w-full" variant="outline">Open Authoring Studio</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
             <div className="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center mb-4">
               <ClipboardCheck className="text-rose-700" size={22} />
             </div>
@@ -83,6 +109,19 @@ export default async function AdminDashboardPage() {
             </CardDescription>
             <Link href="/instructor/reviews">
               <Button className="w-full" variant="outline">Open Review Queue</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4">
+              <Presentation className="text-orange-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Demo Showcase</CardTitle>
+            <CardDescription className="mb-4">
+              Open the viva/demo dashboard with modules, validation, review records, and analytics.
+            </CardDescription>
+            <Link href="/instructor/showcase">
+              <Button className="w-full" variant="outline">Open Showcase</Button>
             </Link>
           </Card>
         </div>
