@@ -51,6 +51,36 @@ export default function TutorialPage() {
     fetchTutorial();
   }, [experimentId]);
 
+  useEffect(() => {
+    const syncTutorialProgress = async () => {
+      if (!tutorial) return;
+
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'tutorial_progress',
+            tutorialId: tutorial.experimentId,
+            experimentName: tutorial.experimentName,
+            category: tutorial.category,
+            totalChapters: tutorial.chapters.length,
+            chapterNumber: currentChapter + 1,
+            completed:
+              tutorial.chapters.length > 0 &&
+              currentChapter === tutorial.chapters.length - 1,
+          }),
+        });
+      } catch (progressError) {
+        console.error('Failed to sync tutorial progress:', progressError);
+      }
+    };
+
+    syncTutorialProgress();
+  }, [tutorial, currentChapter]);
+
   const fetchTutorial = async () => {
     try {
       setLoading(true);
@@ -105,6 +135,30 @@ export default function TutorialPage() {
     physics: 'bg-blue-100 text-blue-800',
     chemistry: 'bg-purple-100 text-purple-800',
     technology: 'bg-indigo-100 text-indigo-800',
+  };
+
+  const handleMarkTutorialComplete = async () => {
+    if (!tutorial) return;
+
+    try {
+      await fetch('/api/progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'tutorial_progress',
+          tutorialId: tutorial.experimentId,
+          experimentName: tutorial.experimentName,
+          category: tutorial.category,
+          totalChapters: tutorial.chapters.length,
+          chapterNumber: tutorial.chapters.length,
+          completed: true,
+        }),
+      });
+    } catch (progressError) {
+      console.error('Failed to mark tutorial complete:', progressError);
+    }
   };
 
   return (
@@ -331,6 +385,14 @@ export default function TutorialPage() {
                   <ChevronRight size={20} />
                 </Button>
               </div>
+
+              {currentChapter === tutorial.chapters.length - 1 && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button variant="success" onClick={handleMarkTutorialComplete}>
+                    Mark Tutorial Complete
+                  </Button>
+                </div>
+              )}
             </div>
           </main>
         </div>
