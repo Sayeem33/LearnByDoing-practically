@@ -9,7 +9,7 @@ import {
   Plus, Beaker, Zap, Clock, Trash2, Eye, 
   BookOpen, FlaskConical, Atom, TrendingUp, 
   Award, Target, Flame, Droplets, Sparkles,
-  GraduationCap, Play, ArrowRight, Star, FileText, ShieldCheck, ClipboardCheck, MessageSquare
+  GraduationCap, Play, ArrowRight, Star, FileText, ShieldCheck, ClipboardCheck, MessageSquare, Compass
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES } from '@/lib/constants';
 import { ValidationSummary, VALIDATION_STATUS_META } from '@/lib/validation';
@@ -45,7 +45,7 @@ interface ProgressAchievement {
 interface TutorialProgressEntry {
   tutorialId: string;
   experimentName: string;
-  category: 'physics' | 'chemistry' | 'technology';
+  category: 'physics' | 'chemistry' | 'technology' | 'math';
   totalChapters: number;
   completedChapters: number[];
   completionPercent: number;
@@ -55,7 +55,7 @@ interface TutorialProgressEntry {
 interface LabProgressEntry {
   experimentType: string;
   experimentName: string;
-  category: 'physics' | 'chemistry' | 'technology';
+  category: 'physics' | 'chemistry' | 'technology' | 'math';
   status: 'draft' | 'completed' | 'submitted';
   completionPercent: number;
   reportSaved: boolean;
@@ -78,17 +78,36 @@ interface UserProgressData {
   };
 }
 
+interface StudentAssignment {
+  _id: string;
+  title: string;
+  description?: string;
+  sourceType: 'lab' | 'tutorial';
+  sourceId: string;
+  sourceName: string;
+  sourceCategory: 'physics' | 'chemistry' | 'technology' | 'math';
+  dueDate: string;
+  studentStatus: {
+    started: boolean;
+    completed: boolean;
+    submitted: boolean;
+    completionPercent: number;
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [progress, setProgress] = useState<UserProgressData | null>(null);
+  const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry'>('all');
+  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry' | 'math'>('all');
 
   // Fetch user experiments
   useEffect(() => {
     fetchExperiments();
     fetchProgress();
+    fetchAssignments();
   }, []);
 
   const fetchExperiments = async () => {
@@ -127,6 +146,23 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch progress:', error);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const response = await fetch('/api/assignments');
+
+      if (response.status === 401) {
+        return;
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setAssignments(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch assignments:', error);
     }
   };
 
@@ -214,12 +250,14 @@ export default function DashboardPage() {
   const templates = Object.entries(EXPERIMENT_TEMPLATES);
   const physicsTemplates = templates.filter(([_, t]) => t.category === 'physics');
   const chemistryTemplates = templates.filter(([_, t]) => t.category === 'chemistry');
+  const mathTemplates = templates.filter(([_, t]) => t.category === 'math');
 
   // Stats
   const totalExperiments = experiments.length;
   const completedExperiments = experiments.filter(e => e.status === 'completed').length;
   const physicsCount = experiments.filter(e => e.category === 'physics').length;
   const chemistryCount = experiments.filter(e => e.category === 'chemistry').length;
+  const mathCount = experiments.filter(e => e.category === 'math').length;
   const experimentsWithValidation = experiments.filter(
     (experiment) => experiment.state?.validation?.supported
   );
@@ -254,6 +292,9 @@ export default function DashboardPage() {
   const recentReviewedExperiments = [...reviewedExperiments]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 3);
+  const upcomingAssignments = [...assignments]
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 4);
   const recentAchievements = [...(progress?.achievements || [])]
     .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime())
     .slice(0, 4);
@@ -277,8 +318,18 @@ export default function DashboardPage() {
       flametest: <Flame className="text-orange-500" size={28} />,
       crystallization: <Sparkles className="text-cyan-500" size={28} />,
       displacement: <TrendingUp className="text-indigo-500" size={28} />,
+      pythagorean: <Compass className="text-emerald-500" size={28} />,
+      trigonometry: <Target className="text-lime-500" size={28} />,
+      circletheorems: <Sparkles className="text-emerald-600" size={28} />,
+      derivativeintuition: <TrendingUp className="text-cyan-500" size={28} />,
     };
-    return icons[key] || (category === 'physics' ? <Zap className="text-blue-600" size={28} /> : <Beaker className="text-purple-600" size={28} />);
+    return icons[key] || (
+      category === 'physics'
+        ? <Zap className="text-blue-600" size={28} />
+        : category === 'chemistry'
+          ? <Beaker className="text-purple-600" size={28} />
+          : <Compass className="text-emerald-600" size={28} />
+    );
   };
 
   // Get difficulty badge
@@ -294,6 +345,10 @@ export default function DashboardPage() {
       flametest: { level: 'Beginner', color: 'bg-green-100 text-green-700' },
       crystallization: { level: 'Beginner', color: 'bg-green-100 text-green-700' },
       displacement: { level: 'Intermediate', color: 'bg-yellow-100 text-yellow-700' },
+      pythagorean: { level: 'Beginner', color: 'bg-green-100 text-green-700' },
+      trigonometry: { level: 'Beginner', color: 'bg-green-100 text-green-700' },
+      circletheorems: { level: 'Intermediate', color: 'bg-yellow-100 text-yellow-700' },
+      derivativeintuition: { level: 'Intermediate', color: 'bg-yellow-100 text-yellow-700' },
     };
     const diff = difficulties[key] || { level: 'Beginner', color: 'bg-green-100 text-green-700' };
     return <span className={`text-xs font-semibold px-2 py-1 rounded-full ${diff.color}`}>{diff.level}</span>;
@@ -338,6 +393,26 @@ export default function DashboardPage() {
     );
   };
 
+  const getAssignmentLink = (assignment: StudentAssignment) => {
+    return assignment.sourceType === 'tutorial'
+      ? `/tutorials/${assignment.sourceId}`
+      : `/lab/${assignment.sourceId}`;
+  };
+
+  const getAssignmentStatusLabel = (assignment: StudentAssignment) => {
+    if (assignment.studentStatus.submitted) return 'Submitted';
+    if (assignment.studentStatus.completed) return 'Completed';
+    if (assignment.studentStatus.started) return 'In Progress';
+    return 'Not Started';
+  };
+
+  const getAssignmentStatusClass = (assignment: StudentAssignment) => {
+    if (assignment.studentStatus.submitted) return 'bg-indigo-100 text-indigo-700';
+    if (assignment.studentStatus.completed) return 'bg-green-100 text-green-700';
+    if (assignment.studentStatus.started) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-100 text-slate-700';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
@@ -377,7 +452,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Overview */}
         <section className="mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-xl">
@@ -422,7 +497,94 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 rounded-xl">
+                  <Compass className="text-emerald-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{mathCount}</p>
+                  <p className="text-sm text-gray-500">Math Modules</p>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <ClipboardCheck className="text-indigo-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Assigned Work</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {assignments.length} active
+            </span>
+          </div>
+
+          {upcomingAssignments.length === 0 ? (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500">
+                No assignments yet. When a teacher assigns a lab or tutorial, it will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+              {upcomingAssignments.map((assignment) => (
+                <div
+                  key={assignment._id}
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="p-3 bg-indigo-50 rounded-xl">
+                      {getExperimentIcon(assignment.sourceId, assignment.sourceCategory)}
+                    </div>
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getAssignmentStatusClass(
+                        assignment
+                      )}`}
+                    >
+                      {getAssignmentStatusLabel(assignment)}
+                    </span>
+                  </div>
+
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                    {assignment.sourceType} • {assignment.sourceCategory}
+                  </p>
+                  <h3 className="font-bold text-gray-900 mb-1">{assignment.title}</h3>
+                  <p className="text-sm text-gray-500 mb-3">{assignment.sourceName}</p>
+
+                  {assignment.description ? (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">{assignment.description}</p>
+                  ) : null}
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Deadline</span>
+                      <span>{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Progress</span>
+                      <span>{assignment.studentStatus.completionPercent.toFixed(0)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-600"
+                        style={{ width: `${assignment.studentStatus.completionPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <Link href={getAssignmentLink(assignment)}>
+                    <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                      {assignment.sourceType === 'tutorial' ? <BookOpen size={14} /> : <Play size={14} />}
+                      Open {assignment.sourceType === 'tutorial' ? 'Tutorial' : 'Lab'}
+                    </button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mb-10">
@@ -535,6 +697,48 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Compass className="text-emerald-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Math Concepts</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {mathTemplates.length} available
+            </span>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {mathTemplates.map(([key, template]) => (
+              <div
+                key={key}
+                className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-200 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-emerald-50 to-cyan-100 rounded-xl group-hover:scale-110 transition-transform">
+                    {getExperimentIcon(key, 'math')}
+                  </div>
+                  {getDifficultyBadge(key)}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">{template.name}</h3>
+                <p className="text-sm text-gray-500 mb-4 line-clamp-2">{template.description}</p>
+                <div className="flex gap-2">
+                  <Link href={`/lab/${key}`} className="flex-1">
+                    <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                      <Play size={14} />
+                      Start Lab
+                    </button>
+                  </Link>
+                  <Link href={`/tutorials/${key}`}>
+                    <button className="p-2 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 rounded-lg transition-colors">
+                      <BookOpen size={16} className="text-gray-600" />
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -874,6 +1078,14 @@ export default function DashboardPage() {
               >
                 Chemistry
               </button>
+              <button
+                onClick={() => setFilter('math')}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  filter === 'math' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                Math
+              </button>
             </div>
           </div>
 
@@ -917,9 +1129,13 @@ export default function DashboardPage() {
                         <div className="p-2 bg-blue-100 rounded-lg">
                           <Zap className="text-blue-600" size={18} />
                         </div>
-                      ) : (
+                      ) : exp.category === 'chemistry' ? (
                         <div className="p-2 bg-purple-100 rounded-lg">
                           <Beaker className="text-purple-600" size={18} />
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-emerald-100 rounded-lg">
+                          <Compass className="text-emerald-600" size={18} />
                         </div>
                       )}
                       <span className="text-xs font-semibold text-gray-500 uppercase">
