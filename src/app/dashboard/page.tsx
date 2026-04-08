@@ -28,15 +28,61 @@ interface Experiment {
   updatedAt: string;
 }
 
+interface ProgressAchievement {
+  achievementId: string;
+  title: string;
+  description: string;
+  kind: 'tutorial' | 'lab' | 'progress';
+  earnedAt: string;
+}
+
+interface TutorialProgressEntry {
+  tutorialId: string;
+  experimentName: string;
+  category: 'physics' | 'chemistry' | 'technology';
+  totalChapters: number;
+  completedChapters: number[];
+  completionPercent: number;
+  completedAt?: string | null;
+}
+
+interface LabProgressEntry {
+  experimentType: string;
+  experimentName: string;
+  category: 'physics' | 'chemistry' | 'technology';
+  status: 'draft' | 'completed' | 'submitted';
+  completionPercent: number;
+  reportSaved: boolean;
+  savedExperimentId?: string;
+}
+
+interface UserProgressData {
+  achievements: ProgressAchievement[];
+  tutorialProgress: TutorialProgressEntry[];
+  labProgress: LabProgressEntry[];
+  stats: {
+    completedStepsCount: number;
+    achievementsCount: number;
+    completedTutorialsCount: number;
+    tutorialsInProgressCount: number;
+    completedLabsCount: number;
+    submittedLabsCount: number;
+    tutorialCompletionRate: number;
+    labCompletionRate: number;
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [progress, setProgress] = useState<UserProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry'>('all');
 
   // Fetch user experiments
   useEffect(() => {
     fetchExperiments();
+    fetchProgress();
   }, []);
 
   const fetchExperiments = async () => {
@@ -61,6 +107,23 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchProgress = async () => {
+    try {
+      const response = await fetch('/api/progress');
+
+      if (response.status === 401) {
+        return;
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setProgress(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch progress:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this experiment?')) return;
 
@@ -78,6 +141,7 @@ export default function DashboardPage() {
 
       if (response.ok && result.success) {
         setExperiments((prev) => prev.filter((exp) => exp._id !== id));
+        fetchProgress();
         return;
       }
 
@@ -117,6 +181,7 @@ export default function DashboardPage() {
           exp._id === id ? { ...exp, status: result.data.status } : exp
         )
       );
+      fetchProgress();
     } catch (error) {
       console.error('Failed to update experiment status:', error);
       alert('Failed to update experiment status');
@@ -171,6 +236,15 @@ export default function DashboardPage() {
         }, 0) / completedValidationRuns.length
       : null;
   const recentValidationRuns = [...completedValidationRuns].slice(0, 3);
+  const recentAchievements = [...(progress?.achievements || [])]
+    .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime())
+    .slice(0, 4);
+  const tutorialProgressEntries = [...(progress?.tutorialProgress || [])]
+    .sort((a, b) => b.completionPercent - a.completionPercent)
+    .slice(0, 3);
+  const labProgressEntries = [...(progress?.labProgress || [])]
+    .sort((a, b) => b.completionPercent - a.completionPercent)
+    .slice(0, 3);
 
   // Get icon for experiment type
   const getExperimentIcon = (key: string, category: string) => {
@@ -329,6 +403,119 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500">Chemistry Labs</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Award className="text-emerald-600" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Progress Tracker</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              MongoDB-backed
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-5 mb-5">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Completed Steps</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {progress?.stats.completedStepsCount ?? 0}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Achievements Earned</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {progress?.stats.achievementsCount ?? 0}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Tutorial Progress</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {progress ? `${progress.stats.tutorialCompletionRate.toFixed(1)}%` : '--'}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Lab Progress</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {progress ? `${progress.stats.labCompletionRate.toFixed(1)}%` : '--'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-5">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4">Recent Achievements</h3>
+              {recentAchievements.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Start tutorials and labs to unlock achievements here.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recentAchievements.map((achievement) => (
+                    <div key={achievement.achievementId} className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                      <p className="font-semibold text-gray-900">{achievement.title}</p>
+                      <p className="text-sm text-gray-600 mt-1">{achievement.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4">Tutorial Progress</h3>
+              {tutorialProgressEntries.length === 0 ? (
+                <p className="text-sm text-gray-500">No tutorial progress recorded yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {tutorialProgressEntries.map((entry) => (
+                    <div key={entry.tutorialId}>
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="font-medium text-gray-900">{entry.experimentName}</span>
+                        <span className="text-gray-500">{entry.completionPercent.toFixed(1)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                          style={{ width: `${entry.completionPercent}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {entry.completedChapters.length} of {entry.totalChapters} chapters viewed
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4">Lab Progress</h3>
+              {labProgressEntries.length === 0 ? (
+                <p className="text-sm text-gray-500">No lab progress recorded yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {labProgressEntries.map((entry) => (
+                    <div key={`${entry.savedExperimentId || entry.experimentType}-lab`}>
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="font-medium text-gray-900">{entry.experimentName}</span>
+                        <span className="text-gray-500">{entry.completionPercent.toFixed(1)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600"
+                          style={{ width: `${entry.completionPercent}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Status: {entry.status} {entry.reportSaved ? '• report saved' : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
