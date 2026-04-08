@@ -401,6 +401,52 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
     router.replace(`/lab/${experimentId}?${params.toString()}`);
   };
 
+  const syncLabProgress = async ({
+    event = 'opened',
+    status = 'draft',
+    reportSaved = false,
+    savedExperimentRef,
+  }: {
+    event?: 'opened' | 'saved' | 'report_saved' | 'completed' | 'submitted';
+    status?: ExperimentStatus;
+    reportSaved?: boolean;
+    savedExperimentRef?: string | null;
+  }) => {
+    if (!template) return;
+
+    try {
+      await fetch('/api/progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'lab_progress',
+          experimentType,
+          experimentName: template.name,
+          category: template.category,
+          savedExperimentId: savedExperimentRef || savedExperimentId || savedExperimentParam,
+          event,
+          status,
+          reportSaved,
+        }),
+      });
+    } catch (progressError) {
+      console.error('Failed to sync lab progress:', progressError);
+    }
+  };
+
+  useEffect(() => {
+    if (!template || isLoadingSavedExperiment) return;
+
+    syncLabProgress({
+      event: 'opened',
+      status: experimentStatus,
+      reportSaved: Boolean(labReport.trim()),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, experimentType, isLoadingSavedExperiment]);
+
   const persistExperiment = async (nextStatus: ExperimentStatus = 'draft') => {
     if (!template) return { success: false };
 
@@ -469,6 +515,19 @@ export default function LabWorkspace({ params }: LabWorkspaceProps) {
 
       setExperimentStatus(result.data?.status || nextStatus);
       setSavedLabReport(result.data?.labReport || labReport.trim());
+      await syncLabProgress({
+        event:
+          (result.data?.status || nextStatus) === 'submitted'
+            ? 'submitted'
+            : (result.data?.status || nextStatus) === 'completed'
+              ? 'completed'
+              : labReport.trim()
+                ? 'report_saved'
+                : 'saved',
+        status: result.data?.status || nextStatus,
+        reportSaved: Boolean((result.data?.labReport || labReport.trim()).trim()),
+        savedExperimentRef: persistedId || savedExperimentId,
+      });
       return {
         success: true,
         persistedId,
