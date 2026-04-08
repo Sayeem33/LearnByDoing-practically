@@ -1,12 +1,5 @@
+import { buildEvidenceSummary } from '@/lib/evidence';
 import { formatValidationValue, ValidationSummary } from '@/lib/validation';
-
-interface ReportMetric {
-  count: number;
-  min: number;
-  max: number;
-  mean: number;
-  last: number;
-}
 
 interface GenerateReportInput {
   title: string;
@@ -39,34 +32,6 @@ function formatValue(value: any) {
   }
 
   return String(value ?? '');
-}
-
-function computeStatistics(results: Record<string, any>[]) {
-  if (!results.length) return {} as Record<string, ReportMetric>;
-
-  const numericKeys = Object.keys(results[0]).filter((key) =>
-    results.some((row) => typeof row[key] === 'number')
-  );
-
-  return numericKeys.reduce<Record<string, ReportMetric>>((acc, key) => {
-    const values = results
-      .map((row) => row[key])
-      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-
-    if (!values.length) return acc;
-
-    const sum = values.reduce((total, value) => total + value, 0);
-
-    acc[key] = {
-      count: values.length,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      mean: sum / values.length,
-      last: values[values.length - 1],
-    };
-
-    return acc;
-  }, {});
 }
 
 function summarizeSnapshot(snapshot?: Record<string, any> | null) {
@@ -109,9 +74,17 @@ export function generateReport({
   generatedAt,
 }: GenerateReportInput) {
   const reportDate = generatedAt || new Date().toISOString();
-  const statistics = computeStatistics(results);
   const snapshotSummary = summarizeSnapshot(snapshot);
   const validationSummary = extractValidationSummary(snapshot);
+  const evidenceSummary = buildEvidenceSummary({
+    title,
+    experimentType,
+    category,
+    experimentStatus: status,
+    results,
+    snapshot,
+    validation: validationSummary,
+  });
   const variables = results.length ? Object.keys(results[0]).join(', ') : 'No measurements recorded';
   const sampleRows = results.slice(0, 5);
 
@@ -149,10 +122,10 @@ export function generateReport({
     '## Key Metrics',
   ];
 
-  if (Object.keys(statistics).length) {
-    Object.entries(statistics).forEach(([key, metric]) => {
+  if (evidenceSummary.statistics.length) {
+    evidenceSummary.statistics.forEach((metric) => {
       lines.push(
-        `- ${key}: mean ${metric.mean.toFixed(3)}, min ${metric.min.toFixed(3)}, max ${metric.max.toFixed(3)}, last ${metric.last.toFixed(3)}`
+        `- ${metric.key}: mean ${metric.mean.toFixed(3)}, min ${metric.min.toFixed(3)}, max ${metric.max.toFixed(3)}, last ${metric.last.toFixed(3)}`
       );
     });
   } else {
@@ -199,6 +172,13 @@ export function generateReport({
   }
 
   lines.push(
+    '',
+    '## Evidence Snapshot',
+    `- Tools used: ${evidenceSummary.toolsUsed.join(', ')}`,
+    `- Stored outputs ready: ${evidenceSummary.storedOutputs.filter((output) => output.available).length}/${evidenceSummary.storedOutputs.length}`,
+    evidenceSummary.timeWindow
+      ? `- Evidence time window: ${evidenceSummary.timeWindow.start.toFixed(3)}s to ${evidenceSummary.timeWindow.end.toFixed(3)}s`
+      : '- Evidence time window: N/A',
     '',
     '## Observations',
     '- Add the main behaviors, trends, or reactions you observed during the simulation.',
