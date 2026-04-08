@@ -9,7 +9,7 @@ import {
   Plus, Beaker, Zap, Clock, Trash2, Eye, 
   BookOpen, FlaskConical, Atom, TrendingUp, 
   Award, Target, Flame, Droplets, Sparkles,
-  GraduationCap, Play, ArrowRight, Star, FileText, ShieldCheck
+  GraduationCap, Play, ArrowRight, Star, FileText, ShieldCheck, ClipboardCheck, MessageSquare
 } from 'lucide-react';
 import { EXPERIMENT_TEMPLATES } from '@/lib/constants';
 import { ValidationSummary, VALIDATION_STATUS_META } from '@/lib/validation';
@@ -21,6 +21,12 @@ interface Experiment {
   experimentType: string;
   status: 'draft' | 'completed' | 'submitted';
   labReport?: string;
+  review?: {
+    status: 'not_reviewed' | 'pending_review' | 'approved' | 'changes_requested';
+    feedback?: string;
+    reviewedBy?: string;
+    reviewedAt?: string | null;
+  };
   state?: {
     validation?: ValidationSummary;
   };
@@ -236,6 +242,18 @@ export default function DashboardPage() {
         }, 0) / completedValidationRuns.length
       : null;
   const recentValidationRuns = [...completedValidationRuns].slice(0, 3);
+  const evidenceReadyExperiments = experiments.filter(
+    (experiment) => Boolean(experiment.labReport?.trim()) && Boolean(experiment.state?.validation?.metrics.length)
+  );
+  const reviewedExperiments = experiments.filter(
+    (experiment) => experiment.review && experiment.review.status !== 'not_reviewed'
+  );
+  const pendingReviewExperiments = experiments.filter(
+    (experiment) => experiment.review?.status === 'pending_review'
+  );
+  const recentReviewedExperiments = [...reviewedExperiments]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 3);
   const recentAchievements = [...(progress?.achievements || [])]
     .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime())
     .slice(0, 4);
@@ -748,6 +766,80 @@ export default function DashboardPage() {
           )}
         </section>
 
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <ClipboardCheck className="text-amber-700" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Evidence & Review Readiness</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              export-ready outputs
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5 mb-5">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Evidence Ready Labs</p>
+              <p className="text-2xl font-bold text-gray-900">{evidenceReadyExperiments.length}</p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Reviewed Submissions</p>
+              <p className="text-2xl font-bold text-gray-900">{reviewedExperiments.length}</p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500 mb-1">Pending Instructor Review</p>
+              <p className="text-2xl font-bold text-gray-900">{pendingReviewExperiments.length}</p>
+            </div>
+          </div>
+
+          {recentReviewedExperiments.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No instructor feedback yet</h3>
+              <p className="text-gray-500 max-w-2xl mx-auto">
+                Submit a lab with a report to make it available in the instructor review queue. Review status and feedback will appear here when a teacher or admin updates it.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {recentReviewedExperiments.map((experiment) => (
+                <div
+                  key={`${experiment._id}-review`}
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        {experiment.category}
+                      </p>
+                      <h3 className="font-bold text-gray-900">{experiment.title}</h3>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        experiment.review?.status === 'approved'
+                          ? 'bg-green-100 text-green-700'
+                          : experiment.review?.status === 'changes_requested'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {experiment.review?.status?.replace(/_/g, ' ') || 'pending review'}
+                    </span>
+                  </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <MessageSquare size={14} className="text-amber-600" />
+                    <span>{experiment.review?.reviewedBy || 'Instructor'} feedback available</span>
+                  </div>
+
+                  <p className="rounded-xl bg-slate-50 p-3 text-sm text-gray-700 line-clamp-4">
+                    {experiment.review?.feedback?.trim() || 'No written feedback was provided.'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Saved Experiments */}
         <section>
           <div className="flex items-center justify-between mb-6">
@@ -869,6 +961,35 @@ export default function DashboardPage() {
                     </div>
                     {getValidationBadge(validation)}
                   </div>
+
+                  <div className="flex items-center justify-between gap-2 text-sm text-gray-600 mb-4">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck
+                        size={14}
+                        className={
+                          exp.review?.status === 'approved'
+                            ? 'text-green-600'
+                            : exp.review?.status === 'changes_requested'
+                              ? 'text-rose-600'
+                              : 'text-slate-500'
+                        }
+                      />
+                      <span>
+                        {exp.review?.status
+                          ? exp.review.status.replace(/_/g, ' ')
+                          : 'Not reviewed'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {hasReport && validation?.metrics.length ? 'Evidence ready' : 'Evidence incomplete'}
+                    </span>
+                  </div>
+
+                  {exp.review?.feedback?.trim() ? (
+                    <div className="mb-4 rounded-xl bg-amber-50 border border-amber-100 p-3 text-sm text-amber-900 line-clamp-3">
+                      {exp.review.feedback}
+                    </div>
+                  ) : null}
 
                   <div className="flex gap-2 pt-4 border-t border-gray-100">
                     <Link href={`/lab/${exp.experimentType}?saved=${exp._id}`} className="flex-1">
