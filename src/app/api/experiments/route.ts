@@ -86,6 +86,13 @@ export async function POST(request: NextRequest) {
       state: state || {},
       status: normalizedStatus,
       labReport: normalizedReport,
+      review: {
+        status: normalizedStatus === 'submitted' ? 'pending_review' : 'not_reviewed',
+        feedback: '',
+        reviewedBy: '',
+        reviewerRole: '',
+        reviewedAt: null,
+      },
     });
 
     return NextResponse.json(
