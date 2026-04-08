@@ -117,6 +117,24 @@ function toAuthSession(user: AuthUser, exp: number): AuthSession {
   };
 }
 
+async function findAuthUserById(userId: string): Promise<AuthUser | null> {
+  try {
+    await dbConnect();
+    const user = await User.findById(userId).select('_id name email role');
+    if (!user) return null;
+
+    return {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+  } catch (error) {
+    console.error('Auth user lookup failed:', error);
+    return null;
+  }
+}
+
 export function setAuthCookie(response: NextResponse, token: string) {
   response.cookies.set({
     name: AUTH_COOKIE_NAME,
@@ -162,16 +180,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<AuthUs
   const payload = verifyAuthToken(token);
   if (!payload) return null;
 
-  await dbConnect();
-  const user = await User.findById(payload.sub).select('_id name email role');
-  if (!user) return null;
-
-  return {
-    id: user._id.toString(),
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  };
+  return findAuthUserById(payload.sub);
 }
 
 export async function getSessionFromRequest(request: NextRequest): Promise<AuthSession | null> {
@@ -181,19 +190,10 @@ export async function getSessionFromRequest(request: NextRequest): Promise<AuthS
   const payload = verifyAuthToken(token);
   if (!payload) return null;
 
-  await dbConnect();
-  const user = await User.findById(payload.sub).select('_id name email role');
+  const user = await findAuthUserById(payload.sub);
   if (!user) return null;
 
-  return toAuthSession(
-    {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    payload.exp
-  );
+  return toAuthSession(user, payload.exp);
 }
 
 export async function getServerSession(): Promise<AuthSession | null> {
@@ -203,19 +203,10 @@ export async function getServerSession(): Promise<AuthSession | null> {
   const payload = verifyAuthToken(token);
   if (!payload) return null;
 
-  await dbConnect();
-  const user = await User.findById(payload.sub).select('_id name email role');
+  const user = await findAuthUserById(payload.sub);
   if (!user) return null;
 
-  return toAuthSession(
-    {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    payload.exp
-  );
+  return toAuthSession(user, payload.exp);
 }
 
 export async function requireAuth(request: NextRequest): Promise<{ user: AuthUser } | { response: NextResponse }> {
