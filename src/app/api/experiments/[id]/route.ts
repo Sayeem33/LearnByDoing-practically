@@ -106,6 +106,16 @@ export async function PUT(
       );
     }
 
+    if (status === 'submitted' && !['approved', 'changes_requested'].includes(experiment.review?.status || '')) {
+      experiment.review = {
+        status: 'pending_review',
+        feedback: experiment.review?.feedback || '',
+        reviewedBy: '',
+        reviewerRole: '',
+        reviewedAt: null,
+      };
+    }
+
     await experiment.save();
 
     return NextResponse.json(
