@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardDescription, CardTitle } from '@/components/ui/Card';
 import { getServerSession } from '@/lib/auth';
-import { Database, Users, BookOpen, ShieldAlert, PlusCircle } from 'lucide-react';
+import { ClipboardCheck, Database, Users, BookOpen, ShieldAlert, PlusCircle } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession();
@@ -70,6 +70,19 @@ export default async function AdminDashboardPage() {
             </CardDescription>
             <Link href="/tutorials">
               <Button className="w-full" variant="outline">Open Tutorials</Button>
+            </Link>
+          </Card>
+
+          <Card hover padding="lg">
+            <div className="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center mb-4">
+              <ClipboardCheck className="text-rose-700" size={22} />
+            </div>
+            <CardTitle className="mb-2">Review Submitted Labs</CardTitle>
+            <CardDescription className="mb-4">
+              Browse student submissions, inspect stored outputs, and record approval or requested changes.
+            </CardDescription>
+            <Link href="/instructor/reviews">
+              <Button className="w-full" variant="outline">Open Review Queue</Button>
             </Link>
           </Card>
         </div>
