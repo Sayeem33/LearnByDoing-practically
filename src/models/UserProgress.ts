@@ -22,7 +22,7 @@ export interface IAchievement {
 export interface ITutorialProgress {
   tutorialId: string;
   experimentName: string;
-  category: 'physics' | 'chemistry' | 'technology';
+  category: 'physics' | 'chemistry' | 'technology' | 'math';
   totalChapters: number;
   completedChapters: number[];
   lastChapter: number;
@@ -35,7 +35,7 @@ export interface ITutorialProgress {
 export interface ILabProgress {
   experimentType: string;
   experimentName: string;
-  category: 'physics' | 'chemistry' | 'technology';
+  category: 'physics' | 'chemistry' | 'technology' | 'math';
   savedExperimentId?: string;
   status: 'draft' | 'completed' | 'submitted';
   reportSaved: boolean;
@@ -108,7 +108,7 @@ const TutorialProgressSchema = new Schema<ITutorialProgress>(
     experimentName: { type: String, required: true },
     category: {
       type: String,
-      enum: ['physics', 'chemistry', 'technology'],
+      enum: ['physics', 'chemistry', 'technology', 'math'],
       required: true,
     },
     totalChapters: { type: Number, required: true, default: 0 },
@@ -128,7 +128,7 @@ const LabProgressSchema = new Schema<ILabProgress>(
     experimentName: { type: String, required: true },
     category: {
       type: String,
-      enum: ['physics', 'chemistry', 'technology'],
+      enum: ['physics', 'chemistry', 'technology', 'math'],
       required: true,
     },
     savedExperimentId: String,
