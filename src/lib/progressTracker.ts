@@ -8,7 +8,7 @@ import UserProgress, {
   IUserProgress,
 } from '@/models/UserProgress';
 
-type ProgressCategory = 'physics' | 'chemistry' | 'technology';
+type ProgressCategory = 'physics' | 'chemistry' | 'technology' | 'math';
 type StepKind = 'tutorial' | 'lab' | 'achievement' | 'system';
 type LabStatus = 'draft' | 'completed' | 'submitted';
 
