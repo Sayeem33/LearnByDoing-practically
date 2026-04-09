@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { EXPERIMENT_TEMPLATES } from '@/lib/constants';
+import ParameterControlRenderer from '@/components/lab/ParameterControlRenderer';
 import {
   createInitialLabState,
   DEFAULT_NEW_LAB_CONFIG,
@@ -12,7 +12,12 @@ import {
   NewLabSessionConfig,
 } from '@/lib/labSessionBuilder';
 import {
+  EXPERIMENT_DEFINITIONS,
+  getExperimentDefinitionsByCategory,
+} from '@/lib/experimentDefinitions';
+import {
   ArrowLeft,
+  Compass,
   Beaker,
   FlaskConical,
   GraduationCap,
@@ -23,10 +28,6 @@ import {
 interface NewLabSessionFormProps {
   creatorRole: 'teacher' | 'admin';
 }
-
-const templates = Object.entries(EXPERIMENT_TEMPLATES) as Array<
-  [ExperimentTemplateKey, (typeof EXPERIMENT_TEMPLATES)[ExperimentTemplateKey]]
->;
 
 const categoryAccent = {
   physics: {
@@ -41,14 +42,20 @@ const categoryAccent = {
     button: 'bg-purple-600 hover:bg-purple-700',
     border: 'hover:border-purple-200',
   },
+  math: {
+    badge: 'bg-emerald-100 text-emerald-700',
+    icon: <Compass size={18} className="text-emerald-600" />,
+    button: 'bg-emerald-600 hover:bg-emerald-700',
+    border: 'hover:border-emerald-200',
+  },
 } as const;
 
-function getCategoryAccent(category: 'physics' | 'chemistry') {
+function getCategoryAccent(category: 'physics' | 'chemistry' | 'math') {
   return categoryAccent[category];
 }
 
 function getDefaultTitle(experimentType: ExperimentTemplateKey) {
-  return `${EXPERIMENT_TEMPLATES[experimentType].name} Session`;
+  return `${EXPERIMENT_DEFINITIONS[experimentType].name} Session`;
 }
 
 export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProps) {
@@ -61,11 +68,12 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
   const [config, setConfig] = useState<NewLabSessionConfig>(DEFAULT_NEW_LAB_CONFIG);
   const [error, setError] = useState('');
 
-  const selectedTemplate = EXPERIMENT_TEMPLATES[selectedExperiment];
+  const selectedDefinition = EXPERIMENT_DEFINITIONS[selectedExperiment];
   const groupedTemplates = useMemo(
     () => ({
-      physics: templates.filter(([, template]) => template.category === 'physics'),
-      chemistry: templates.filter(([, template]) => template.category === 'chemistry'),
+      physics: getExperimentDefinitionsByCategory('physics'),
+      chemistry: getExperimentDefinitionsByCategory('chemistry'),
+      math: getExperimentDefinitionsByCategory('math'),
     }),
     []
   );
@@ -81,6 +89,7 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
     setSelectedExperiment(experimentType);
     setTitle(getDefaultTitle(experimentType));
     setDescription('');
+    setConfig(DEFAULT_NEW_LAB_CONFIG);
     setError('');
   };
 
@@ -97,8 +106,8 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
           },
           body: JSON.stringify({
             title: title.trim() || getDefaultTitle(selectedExperiment),
-            description: description.trim() || selectedTemplate.description,
-            category: selectedTemplate.category,
+            description: description.trim() || selectedDefinition.description,
+            category: selectedDefinition.category,
             experimentType: selectedExperiment,
             state,
             status: 'draft',
@@ -119,112 +128,8 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
     });
   };
 
-  const renderRangeField = (
-    label: string,
-    key: keyof NewLabSessionConfig,
-    options: { min: number; max: number; step?: number; suffix?: string }
-  ) => (
-    <div>
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <label className="font-medium text-gray-700">{label}</label>
-        <span className="font-semibold text-gray-900">
-          {String(config[key])}
-          {options.suffix || ''}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={options.min}
-        max={options.max}
-        step={options.step || 1}
-        value={Number(config[key])}
-        onChange={(event) => updateConfig(key, Number(event.target.value))}
-        className="w-full h-2 cursor-pointer appearance-none rounded-lg bg-gray-200"
-      />
-    </div>
-  );
-
-  const renderConfigurationPanel = () => {
-    switch (selectedExperiment) {
-      case 'freefall':
-        return renderRangeField('Initial Height', 'height', { min: 20, max: 400, suffix: ' px' });
-      case 'projectilemotion':
-        return (
-          <div className="space-y-5">
-            {renderRangeField('Launch Angle', 'angle', { min: 10, max: 80, suffix: '°' })}
-            {renderRangeField('Launch Speed', 'speed', { min: 5, max: 50, suffix: ' m/s' })}
-            {renderRangeField('Initial Height', 'initialHeight', {
-              min: 0,
-              max: 20,
-              step: 0.5,
-              suffix: ' m',
-            })}
-          </div>
-        );
-      case 'pendulum':
-        return (
-          <div className="space-y-5">
-            {renderRangeField('Length', 'length', { min: 1, max: 5, step: 0.1, suffix: ' m' })}
-            {renderRangeField('Mass', 'mass', { min: 1, max: 10, step: 0.5, suffix: ' kg' })}
-            {renderRangeField('Initial Angle', 'initialAngle', {
-              min: 5,
-              max: 60,
-              suffix: '°',
-            })}
-            {renderRangeField('Damping', 'damping', {
-              min: 0,
-              max: 0.1,
-              step: 0.01,
-            })}
-          </div>
-        );
-      case 'collision':
-        return (
-          <div className="space-y-5">
-            {renderRangeField('Mass A', 'massA', { min: 1, max: 10, step: 0.5, suffix: ' kg' })}
-            {renderRangeField('Mass B', 'massB', { min: 1, max: 10, step: 0.5, suffix: ' kg' })}
-            {renderRangeField('Velocity A', 'velocityA', {
-              min: -10,
-              max: 10,
-              step: 0.5,
-              suffix: ' m/s',
-            })}
-            {renderRangeField('Velocity B', 'velocityB', {
-              min: -10,
-              max: 10,
-              step: 0.5,
-              suffix: ' m/s',
-            })}
-            {renderRangeField('Restitution', 'restitution', {
-              min: 0,
-              max: 1,
-              step: 0.05,
-            })}
-          </div>
-        );
-      case 'electrolysis':
-        return (
-          <div className="space-y-5">
-            {renderRangeField('Voltage', 'voltage', { min: 1, max: 12, step: 0.5, suffix: ' V' })}
-            {renderRangeField('Electrolyte Concentration', 'electrolyteConc', {
-              min: 0.1,
-              max: 1,
-              step: 0.1,
-              suffix: ' M',
-            })}
-          </div>
-        );
-      default:
-        return (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-            This experiment uses the template default setup. You can fine-tune it after the session is created.
-          </div>
-        );
-    }
-  };
-
   const renderTemplateSection = (
-    category: 'physics' | 'chemistry',
+    category: 'physics' | 'chemistry' | 'math',
     title: string,
     items: typeof groupedTemplates.physics
   ) => (
@@ -234,7 +139,7 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
         <h2 className="text-lg font-bold text-gray-900">{title}</h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {items.map(([experimentType, template]) => {
+        {items.map(([experimentType, definition]) => {
           const isSelected = selectedExperiment === experimentType;
 
           return (
@@ -250,14 +155,25 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${categoryAccent[category].badge}`}>
-                  {template.category}
+                  {definition.category}
                 </span>
                 {isSelected ? (
                   <span className="text-xs font-semibold text-gray-900">Selected</span>
                 ) : null}
               </div>
-              <h3 className="font-bold text-gray-900">{template.name}</h3>
-              <p className="mt-2 text-sm text-gray-600">{template.description}</p>
+              <h3 className="font-bold text-gray-900">{definition.name}</h3>
+              <p className="mt-2 text-sm text-gray-600">{definition.description}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                  {definition.controls.length} controls
+                </span>
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                  {definition.formulas.length} formulas
+                </span>
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                  {definition.outputMetrics.length} outputs
+                </span>
+              </div>
             </button>
           );
         })}
@@ -297,6 +213,7 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
           <div className="space-y-6">
             {renderTemplateSection('physics', 'Physics Experiments', groupedTemplates.physics)}
             {renderTemplateSection('chemistry', 'Chemistry Experiments', groupedTemplates.chemistry)}
+            {renderTemplateSection('math', 'Math Concepts', groupedTemplates.math)}
           </div>
 
           <div className="space-y-6">
@@ -330,7 +247,7 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
                     onChange={(event) => setDescription(event.target.value)}
                     rows={4}
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                    placeholder={selectedTemplate.description}
+                    placeholder={selectedDefinition.description}
                   />
                 </div>
               </div>
@@ -343,23 +260,58 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
                 </div>
                 <div>
                   <h2 className="font-bold text-gray-900">Initial Configuration</h2>
-                  <p className="text-sm text-gray-500">Set the starting conditions before the lab opens.</p>
+                  <p className="text-sm text-gray-500">Set the starting conditions from the experiment schema before the lab opens.</p>
                 </div>
               </div>
-              {renderConfigurationPanel()}
+              <ParameterControlRenderer
+                controls={selectedDefinition.controls}
+                values={config}
+                defaults={DEFAULT_NEW_LAB_CONFIG}
+                onChange={updateConfig}
+                onResetAll={() => setConfig(DEFAULT_NEW_LAB_CONFIG)}
+              />
+              <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <h3 className="font-semibold text-gray-900">Definition Blueprint</h3>
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Key Formulas</p>
+                    <ul className="mt-2 space-y-2 text-sm text-gray-700">
+                      {selectedDefinition.formulas.slice(0, 3).map((formula) => (
+                        <li key={formula.key}>
+                          <span className="font-semibold text-gray-900">{formula.label}:</span> {formula.expression}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Output Metrics</p>
+                    <ul className="mt-2 space-y-2 text-sm text-gray-700">
+                      {selectedDefinition.outputMetrics.slice(0, 4).map((metric) => (
+                        <li key={metric.key}>
+                          <span className="font-semibold text-gray-900">{metric.label}</span>
+                          {'unit' in metric && metric.unit ? ` (${metric.unit})` : ''} - {metric.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </Card>
 
             <Card className="border border-gray-100 bg-white">
               <h2 className="mb-3 font-bold text-gray-900">Summary</h2>
               <div className="space-y-2 text-sm text-gray-600">
                 <p>
-                  <span className="font-semibold text-gray-900">Experiment:</span> {selectedTemplate.name}
+                  <span className="font-semibold text-gray-900">Experiment:</span> {selectedDefinition.name}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-900">Category:</span> {selectedTemplate.category}
+                  <span className="font-semibold text-gray-900">Category:</span> {selectedDefinition.category}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-900">Objectives:</span> {selectedTemplate.objectives.length} learning goals
+                  <span className="font-semibold text-gray-900">Objectives:</span> {selectedDefinition.objectives.length} learning goals
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-900">Validation Rules:</span> {selectedDefinition.validationRules.length} defined checks
                 </p>
               </div>
 
@@ -381,7 +333,7 @@ export default function NewLabSessionForm({ creatorRole }: NewLabSessionFormProp
                   type="button"
                   onClick={handleCreate}
                   disabled={isPending}
-                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${getCategoryAccent(selectedTemplate.category as 'physics' | 'chemistry').button} disabled:cursor-not-allowed disabled:opacity-60`}
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${getCategoryAccent(selectedDefinition.category as 'physics' | 'chemistry' | 'math').button} disabled:cursor-not-allowed disabled:opacity-60`}
                 >
                   {isPending ? 'Creating...' : 'Create And Open Lab'}
                 </button>
