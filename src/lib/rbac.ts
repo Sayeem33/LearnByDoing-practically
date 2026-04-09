@@ -25,6 +25,16 @@ export const RBAC_POLICY = {
     list: ['teacher', 'admin'] as AllowedRoles,
     update: ['teacher', 'admin'] as AllowedRoles,
   },
+  assignments: {
+    list: ['student', 'teacher', 'admin'] as AllowedRoles,
+    create: ['teacher', 'admin'] as AllowedRoles,
+    targets: ['teacher', 'admin'] as AllowedRoles,
+  },
+  authoring: {
+    list: ['teacher', 'admin'] as AllowedRoles,
+    create: ['teacher', 'admin'] as AllowedRoles,
+    update: ['teacher', 'admin'] as AllowedRoles,
+  },
 } as const;
 
 export function hasRole(userRole: UserRole, allowedRoles: AllowedRoles): boolean {
