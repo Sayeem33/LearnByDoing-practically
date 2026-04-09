@@ -135,6 +135,7 @@ export default function TutorialPage() {
     physics: 'bg-blue-100 text-blue-800',
     chemistry: 'bg-purple-100 text-purple-800',
     technology: 'bg-indigo-100 text-indigo-800',
+    math: 'bg-emerald-100 text-emerald-800',
   };
 
   const handleMarkTutorialComplete = async () => {
