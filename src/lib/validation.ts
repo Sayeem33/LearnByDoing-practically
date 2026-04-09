@@ -1,3 +1,4 @@
+import { EXPERIMENT_DEFINITIONS } from '@/lib/experimentDefinitions';
 import { PHYSICS } from '@/lib/constants';
 
 export type ValidationStatus =
@@ -44,14 +45,13 @@ const EPSILON = 1e-6;
 const FREE_FALL_GRAVITY = PHYSICS.GRAVITY;
 const PROJECTILE_GRAVITY = 9.81;
 const PENDULUM_GRAVITY = 9.81;
+const ELECTRIC_FIELD_CONSTANT = 8.99;
 
-export const SUPPORTED_VALIDATION_EXPERIMENTS = new Set([
-  'freefall',
-  'projectilemotion',
-  'pendulum',
-  'collision',
-  'electrolysis',
-]);
+export const SUPPORTED_VALIDATION_EXPERIMENTS = new Set(
+  Object.entries(EXPERIMENT_DEFINITIONS)
+    .filter(([, definition]) => definition.validationRules.some((rule) => rule.implemented))
+    .map(([experimentId]) => experimentId)
+);
 
 export const VALIDATION_STATUS_META: Record<
   ValidationStatus,
@@ -410,6 +410,333 @@ function buildElectrolysisValidation(snapshot: any) {
   return finalizeSummary('electrolysis', 'Electrolysis Verification', metrics);
 }
 
+function buildElectricFieldsValidation(snapshot: any) {
+  const chargeStrength = asFiniteNumber(snapshot?.chargeStrength);
+  const chargeSeparation = asFiniteNumber(snapshot?.chargeSeparation);
+  const probeX = asFiniteNumber(snapshot?.probeX);
+  const measuredField = asFiniteNumber(snapshot?.fieldStrength);
+  const measuredPotential = asFiniteNumber(snapshot?.potential);
+
+  if (
+    chargeStrength === null ||
+    chargeSeparation === null ||
+    probeX === null ||
+    measuredField === null ||
+    measuredPotential === null
+  ) {
+    return finalizeSummary('electricfields', 'Electric Field Verification', [], [
+      'Run the electric-field probe so field and potential measurements are available.',
+    ]);
+  }
+
+  const leftX = -chargeSeparation / 2;
+  const rightX = chargeSeparation / 2;
+  const safeLeft = Math.sign(probeX - leftX || 1) * Math.max(Math.abs(probeX - leftX), 10);
+  const safeRight = Math.sign(probeX - rightX || 1) * Math.max(Math.abs(probeX - rightX), 10);
+  const leftDistance = Math.max(Math.abs(probeX - leftX), 10);
+  const rightDistance = Math.max(Math.abs(probeX - rightX), 10);
+  const theoreticalField =
+    (ELECTRIC_FIELD_CONSTANT * chargeStrength) / (safeLeft * safeLeft) +
+    (ELECTRIC_FIELD_CONSTANT * chargeStrength) / (safeRight * safeRight);
+  const theoreticalPotential =
+    (ELECTRIC_FIELD_CONSTANT * chargeStrength) / leftDistance -
+    (ELECTRIC_FIELD_CONSTANT * chargeStrength) / rightDistance;
+
+  const metrics = [
+    createMetric({
+      key: 'field_strength',
+      label: 'Probe electric field',
+      theoretical: theoreticalField,
+      measured: measuredField,
+      tolerancePercent: 6,
+    }),
+    createMetric({
+      key: 'potential',
+      label: 'Probe electric potential',
+      theoretical: theoreticalPotential,
+      measured: measuredPotential,
+      tolerancePercent: 8,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('electricfields', 'Electric Field Verification', metrics);
+}
+
+function buildSimpleCircuitsValidation(snapshot: any) {
+  const voltage = asFiniteNumber(snapshot?.voltage);
+  const resistanceA = asFiniteNumber(snapshot?.circuitResistanceA);
+  const resistanceB = asFiniteNumber(snapshot?.circuitResistanceB);
+  const measuredCurrent = asFiniteNumber(snapshot?.current);
+  const measuredResistance = asFiniteNumber(snapshot?.totalResistance);
+  const measuredDropA = asFiniteNumber(snapshot?.voltageDropA);
+  const measuredDropB = asFiniteNumber(snapshot?.voltageDropB);
+  const mode = snapshot?.circuitMode === 'parallel' ? 'parallel' : 'series';
+
+  if (
+    voltage === null ||
+    resistanceA === null ||
+    resistanceB === null ||
+    measuredCurrent === null ||
+    measuredResistance === null
+  ) {
+    return finalizeSummary('simplecircuits', 'Simple Circuit Verification', [], [
+      'Voltage, resistor values, and measured current are needed before validation can run.',
+    ]);
+  }
+
+  const totalResistance =
+    mode === 'series' ? resistanceA + resistanceB : 1 / (1 / resistanceA + 1 / resistanceB);
+  const expectedCurrent = voltage / totalResistance;
+  const expectedVoltageRule = mode === 'series' ? voltage : voltage;
+  const measuredVoltageRule =
+    mode === 'series'
+      ? (measuredDropA ?? 0) + (measuredDropB ?? 0)
+      : Math.max(measuredDropA ?? 0, measuredDropB ?? 0);
+
+  const metrics = [
+    createMetric({
+      key: 'total_resistance',
+      label: 'Equivalent resistance',
+      theoretical: totalResistance,
+      measured: measuredResistance,
+      unit: 'Ω',
+      tolerancePercent: 3,
+    }),
+    createMetric({
+      key: 'current',
+      label: 'Circuit current',
+      theoretical: expectedCurrent,
+      measured: measuredCurrent,
+      unit: 'A',
+      tolerancePercent: 6,
+    }),
+    createMetric({
+      key: 'voltage_rule',
+      label: mode === 'series' ? 'Series voltage sum' : 'Parallel branch voltage',
+      theoretical: expectedVoltageRule,
+      measured: measuredVoltageRule,
+      unit: 'V',
+      tolerancePercent: 6,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('simplecircuits', 'Simple Circuit Verification', metrics);
+}
+
+function buildWaveInterferenceValidation(snapshot: any) {
+  const waveLength = asFiniteNumber(snapshot?.waveLength);
+  const pathDifference = asFiniteNumber(snapshot?.pathDifference);
+  const measuredPhase = asFiniteNumber(snapshot?.phaseDifference);
+  const measuredIntensity = asFiniteNumber(snapshot?.intensity);
+
+  if (
+    waveLength === null ||
+    pathDifference === null ||
+    measuredPhase === null ||
+    measuredIntensity === null
+  ) {
+    return finalizeSummary('waveinterference', 'Wave Interference Verification', [], [
+      'Run the interference screen long enough to collect path and intensity measurements.',
+    ]);
+  }
+
+  const theoreticalPhase = (2 * Math.PI * pathDifference) / waveLength;
+  const theoreticalIntensity = (1 + Math.cos(theoreticalPhase)) / 2;
+
+  const metrics = [
+    createMetric({
+      key: 'phase_difference',
+      label: 'Phase difference',
+      theoretical: theoreticalPhase,
+      measured: measuredPhase,
+      unit: 'rad',
+      tolerancePercent: 5,
+    }),
+    createMetric({
+      key: 'intensity',
+      label: 'Relative intensity',
+      theoretical: theoreticalIntensity,
+      measured: measuredIntensity,
+      tolerancePercent: 6,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('waveinterference', 'Wave Interference Verification', metrics);
+}
+
+function buildRayOpticsValidation(snapshot: any) {
+  const incidentAngle = asFiniteNumber(snapshot?.incidentAngle);
+  const refractiveIndex = asFiniteNumber(snapshot?.refractiveIndex);
+  const reflectedAngle = asFiniteNumber(snapshot?.reflectedAngle);
+  const refractedAngle = asFiniteNumber(snapshot?.refractedAngle);
+
+  if (
+    incidentAngle === null ||
+    refractiveIndex === null ||
+    reflectedAngle === null ||
+    refractedAngle === null
+  ) {
+    return finalizeSummary('rayoptics', 'Ray Optics Verification', [], [
+      'Incident angle, refractive index, and measured ray angles are required before validation can run.',
+    ]);
+  }
+
+  const theoreticalRefracted = (Math.asin(Math.min(1, Math.sin((incidentAngle * Math.PI) / 180) / refractiveIndex)) * 180) / Math.PI;
+
+  const metrics = [
+    createMetric({
+      key: 'reflection',
+      label: 'Reflected angle',
+      theoretical: incidentAngle,
+      measured: reflectedAngle,
+      unit: '°',
+      tolerancePercent: 2,
+    }),
+    createMetric({
+      key: 'refraction',
+      label: 'Refracted angle',
+      theoretical: theoreticalRefracted,
+      measured: refractedAngle,
+      unit: '°',
+      tolerancePercent: 4,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('rayoptics', 'Ray Optics Verification', metrics);
+}
+
+function buildPythagoreanValidation(snapshot: any) {
+  const base = asFiniteNumber(snapshot?.triangleBase);
+  const height = asFiniteNumber(snapshot?.triangleHeight);
+  const hypotenuse = asFiniteNumber(snapshot?.hypotenuse);
+  const theoremLeft = asFiniteNumber(snapshot?.theoremLeft);
+  const theoremRight = asFiniteNumber(snapshot?.theoremRight);
+
+  if (base === null || height === null || hypotenuse === null) {
+    return finalizeSummary('pythagorean', 'Pythagorean Verification', [], [
+      'Base, height, and hypotenuse values are needed before theorem validation can run.',
+    ]);
+  }
+
+  const expectedHypotenuse = Math.sqrt(base * base + height * height);
+  const expectedAreaBalance = base * base + height * height;
+
+  const metrics = [
+    createMetric({
+      key: 'hypotenuse_length',
+      label: 'Hypotenuse length',
+      theoretical: expectedHypotenuse,
+      measured: hypotenuse,
+      tolerancePercent: 1,
+    }),
+    createMetric({
+      key: 'square_balance',
+      label: 'a² + b² equals c²',
+      theoretical: expectedAreaBalance,
+      measured: theoremRight ?? theoremLeft,
+      tolerancePercent: 1,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('pythagorean', 'Pythagorean Verification', metrics);
+}
+
+function buildTrigonometryValidation(snapshot: any) {
+  const trigAngle = asFiniteNumber(snapshot?.trigAngle);
+  const measuredSin = asFiniteNumber(snapshot?.sinValue);
+  const measuredCos = asFiniteNumber(snapshot?.cosValue);
+  const measuredTan = asFiniteNumber(snapshot?.tanValue);
+
+  if (trigAngle === null || measuredSin === null || measuredCos === null || measuredTan === null) {
+    return finalizeSummary('trigonometry', 'Trigonometry Verification', [], [
+      'Angle and ratio measurements are needed before validation can run.',
+    ]);
+  }
+
+  const radians = (trigAngle * Math.PI) / 180;
+  const metrics = [
+    createMetric({
+      key: 'sin_ratio',
+      label: 'sin θ',
+      theoretical: Math.sin(radians),
+      measured: measuredSin,
+      tolerancePercent: 1,
+    }),
+    createMetric({
+      key: 'cos_ratio',
+      label: 'cos θ',
+      theoretical: Math.cos(radians),
+      measured: measuredCos,
+      tolerancePercent: 1,
+    }),
+    createMetric({
+      key: 'tan_ratio',
+      label: 'tan θ',
+      theoretical: Math.tan(radians),
+      measured: measuredTan,
+      tolerancePercent: 2,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('trigonometry', 'Trigonometry Verification', metrics);
+}
+
+function buildCircleTheoremValidation(snapshot: any) {
+  const centralAngle = asFiniteNumber(snapshot?.centralAngle ?? snapshot?.circleCentralAngle);
+  const inscribedAngle = asFiniteNumber(snapshot?.inscribedAngle);
+
+  if (centralAngle === null || inscribedAngle === null) {
+    return finalizeSummary('circletheorems', 'Circle Theorem Verification', [], [
+      'Central and inscribed angle measurements are required before validation can run.',
+    ]);
+  }
+
+  const metrics = [
+    createMetric({
+      key: 'angle_ratio',
+      label: 'Inscribed angle is half the central angle',
+      theoretical: centralAngle / 2,
+      measured: inscribedAngle,
+      unit: '°',
+      tolerancePercent: 1,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('circletheorems', 'Circle Theorem Verification', metrics);
+}
+
+function buildDerivativeValidation(snapshot: any) {
+  const pointX = asFiniteNumber(snapshot?.pointX ?? snapshot?.derivativePointX);
+  const pointY = asFiniteNumber(snapshot?.pointY);
+  const tangentSlope = asFiniteNumber(snapshot?.tangentSlope);
+  const derivativeScale = asFiniteNumber(snapshot?.derivativeScale);
+
+  if (pointX === null || pointY === null || tangentSlope === null || derivativeScale === null) {
+    return finalizeSummary('derivativeintuition', 'Derivative Verification', [], [
+      'Point coordinates, scale, and tangent slope are required before validation can run.',
+    ]);
+  }
+
+  const metrics = [
+    createMetric({
+      key: 'point_height',
+      label: 'Curve height y = ax²',
+      theoretical: derivativeScale * pointX * pointX,
+      measured: pointY,
+      tolerancePercent: 1,
+    }),
+    createMetric({
+      key: 'tangent_slope',
+      label: 'Derivative slope 2ax',
+      theoretical: 2 * derivativeScale * pointX,
+      measured: tangentSlope,
+      tolerancePercent: 1,
+    }),
+  ].filter((metric): metric is ValidationMetric => Boolean(metric));
+
+  return finalizeSummary('derivativeintuition', 'Derivative Verification', metrics);
+}
+
 export function formatValidationValue(value: number | null, unit?: string) {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return '--';
@@ -437,6 +764,22 @@ export function getValidationSummary(
       return buildCollisionValidation(safeSnapshot);
     case 'electrolysis':
       return buildElectrolysisValidation(safeSnapshot);
+    case 'electricfields':
+      return buildElectricFieldsValidation(safeSnapshot);
+    case 'simplecircuits':
+      return buildSimpleCircuitsValidation(safeSnapshot);
+    case 'waveinterference':
+      return buildWaveInterferenceValidation(safeSnapshot);
+    case 'rayoptics':
+      return buildRayOpticsValidation(safeSnapshot);
+    case 'pythagorean':
+      return buildPythagoreanValidation(safeSnapshot);
+    case 'trigonometry':
+      return buildTrigonometryValidation(safeSnapshot);
+    case 'circletheorems':
+      return buildCircleTheoremValidation(safeSnapshot);
+    case 'derivativeintuition':
+      return buildDerivativeValidation(safeSnapshot);
     default:
       return finalizeSummary(experimentType, 'Validation', []);
   }
