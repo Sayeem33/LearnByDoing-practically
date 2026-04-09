@@ -10,6 +10,7 @@ import {
   Beaker,
   BookOpen,
   Clock,
+  Compass,
   Droplets,
   Flame,
   FlaskConical,
@@ -25,7 +26,7 @@ interface Tutorial {
   _id: string;
   experimentId: string;
   experimentName: string;
-  category: 'physics' | 'chemistry' | 'technology';
+  category: 'physics' | 'chemistry' | 'technology' | 'math';
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   duration: number;
@@ -47,6 +48,10 @@ const getTutorialIcon = (experimentId: string, category: Tutorial['category']) =
     llm: <BookOpen className="text-sky-500" size={28} />,
     agenticai: <Zap className="text-fuchsia-500" size={28} />,
     rag: <BarChart3 className="text-teal-500" size={28} />,
+    pythagorean: <Compass className="text-emerald-500" size={28} />,
+    trigonometry: <Target className="text-lime-500" size={28} />,
+    circletheorems: <Sparkles className="text-emerald-600" size={28} />,
+    derivativeintuition: <TrendingUp className="text-cyan-500" size={28} />,
   };
 
   return icons[experimentId] || (
@@ -54,7 +59,9 @@ const getTutorialIcon = (experimentId: string, category: Tutorial['category']) =
       ? <Zap className="text-blue-600" size={28} />
       : category === 'chemistry'
         ? <Beaker className="text-purple-600" size={28} />
-        : <GraduationCap className="text-indigo-600" size={28} />
+        : category === 'math'
+          ? <Compass className="text-emerald-600" size={28} />
+          : <GraduationCap className="text-indigo-600" size={28} />
   );
 };
 
@@ -76,7 +83,7 @@ export default function TutorialsPage() {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry' | 'technology'>('all');
+  const [filter, setFilter] = useState<'all' | 'physics' | 'chemistry' | 'technology' | 'math'>('all');
 
   useEffect(() => {
     const fetchTutorials = async () => {
@@ -108,6 +115,7 @@ export default function TutorialsPage() {
   const physicsTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'physics');
   const chemistryTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'chemistry');
   const technologyTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'technology');
+  const mathTutorials = filteredTutorials.filter((tutorial) => tutorial.category === 'math');
   const beginnerCount = tutorials.filter((tutorial) => tutorial.difficulty === 'beginner').length;
 
   const renderTutorialSection = (
@@ -219,7 +227,7 @@ export default function TutorialsPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <section className="mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-indigo-100 rounded-xl">
@@ -281,6 +289,19 @@ export default function TutorialsPage() {
                 </div>
               </div>
             </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 rounded-xl">
+                  <Compass className="text-emerald-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tutorials.filter((tutorial) => tutorial.category === 'math').length}
+                  </p>
+                  <p className="text-sm text-gray-500">Math Tutorials</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -337,6 +358,14 @@ export default function TutorialsPage() {
               }`}
             >
               Technology
+            </button>
+            <button
+              onClick={() => setFilter('math')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                filter === 'math' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Math
             </button>
           </div>
         </section>
@@ -397,6 +426,23 @@ export default function TutorialsPage() {
                 buttonBg: 'hover:bg-purple-50',
               },
               <Beaker size={20} />
+            )}
+
+            {renderTutorialSection(
+              'Math Tutorials',
+              mathTutorials.length,
+              mathTutorials,
+              {
+                iconBg: 'bg-emerald-50',
+                iconText: 'text-emerald-600',
+                cardBorder: 'hover:border-emerald-200',
+                cardHover: 'hover:shadow-lg',
+                button: 'bg-emerald-600',
+                buttonHover: 'hover:bg-emerald-700',
+                buttonBorder: 'border-emerald-100 hover:border-emerald-300',
+                buttonBg: 'hover:bg-emerald-50',
+              },
+              <Compass size={20} />
             )}
 
             {renderTutorialSection(
