@@ -89,6 +89,119 @@ describe('validation summaries', () => {
     expect(summary.metrics).toHaveLength(2);
   });
 
+  it('validates electric field and potential at the probe point', () => {
+    const summary = getValidationSummary('electricfields', {
+      chargeStrength: 5,
+      chargeSeparation: 160,
+      probeX: 0,
+      fieldStrength: 0.014046875,
+      potential: 0,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(2);
+  });
+
+  it('checks Ohm’s law for the simple circuits module', () => {
+    const summary = getValidationSummary('simplecircuits', {
+      voltage: 12,
+      circuitResistanceA: 4,
+      circuitResistanceB: 6,
+      circuitMode: 'series',
+      totalResistance: 10,
+      current: 1.2,
+      voltageDropA: 4.8,
+      voltageDropB: 7.2,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(3);
+  });
+
+  it('verifies wave interference phase and intensity', () => {
+    const pathDifference = 30;
+    const waveLength = 120;
+    const phaseDifference = (2 * Math.PI * pathDifference) / waveLength;
+    const intensity = (1 + Math.cos(phaseDifference)) / 2;
+
+    const summary = getValidationSummary('waveinterference', {
+      waveLength,
+      pathDifference,
+      phaseDifference,
+      intensity,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(2);
+  });
+
+  it('checks reflection and refraction in the ray optics module', () => {
+    const incidentAngle = 45;
+    const refractiveIndex = 1.5;
+    const refractedAngle =
+      (Math.asin(Math.sin((incidentAngle * Math.PI) / 180) / refractiveIndex) * 180) / Math.PI;
+
+    const summary = getValidationSummary('rayoptics', {
+      incidentAngle,
+      refractiveIndex,
+      reflectedAngle: 45,
+      refractedAngle,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(2);
+  });
+
+  it('verifies the Pythagorean theorem for a right triangle', () => {
+    const summary = getValidationSummary('pythagorean', {
+      triangleBase: 6,
+      triangleHeight: 8,
+      hypotenuse: 10,
+      theoremLeft: 100,
+      theoremRight: 100,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(2);
+  });
+
+  it('checks trigonometric ratios for a measured angle', () => {
+    const angle = 30;
+    const radians = (angle * Math.PI) / 180;
+
+    const summary = getValidationSummary('trigonometry', {
+      trigAngle: angle,
+      sinValue: Math.sin(radians),
+      cosValue: Math.cos(radians),
+      tanValue: Math.tan(radians),
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(3);
+  });
+
+  it('checks the inscribed-angle theorem', () => {
+    const summary = getValidationSummary('circletheorems', {
+      centralAngle: 100,
+      inscribedAngle: 50,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(1);
+  });
+
+  it('checks the derivative slope for the parabola module', () => {
+    const summary = getValidationSummary('derivativeintuition', {
+      derivativeScale: 1.2,
+      pointX: 2,
+      pointY: 4.8,
+      tangentSlope: 4.8,
+    });
+
+    expect(summary.status).toBe('validated');
+    expect(summary.metrics).toHaveLength(2);
+  });
+
   it('marks unsupported experiments as not available', () => {
     const summary = getValidationSummary('acidbase', {});
 
