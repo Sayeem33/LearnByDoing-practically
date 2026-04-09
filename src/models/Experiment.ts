@@ -60,7 +60,7 @@ export interface IExperiment extends Document {
   userId: string;
   title: string;
   description?: string;
-  category: 'physics' | 'chemistry' | 'electronics';
+  category: 'physics' | 'chemistry' | 'math' | 'electronics';
   experimentType: string;
   state: ExperimentState;
   labReport?: string;
@@ -95,7 +95,7 @@ const ExperimentSchema = new Schema<IExperiment>(
     },
     category: {
       type: String,
-      enum: ['physics', 'chemistry', 'electronics'],
+      enum: ['physics', 'chemistry', 'math', 'electronics'],
       required: true,
       index: true,
     },
