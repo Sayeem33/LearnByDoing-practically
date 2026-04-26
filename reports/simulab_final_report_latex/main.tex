@@ -1,0 +1,832 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[a4paper,left=1.2in,right=1in,top=1in,bottom=1in,headheight=14pt]{geometry}
+\usepackage{mathptmx}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\onehalfspacing
+\setlength{\parindent}{0.25in}
+\setlength{\parskip}{6pt}
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\contentsname}{Contents}
+\renewcommand{\listtablename}{List of Tables}
+\renewcommand{\listfigurename}{List of Figures}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering\fontsize{14}{18}\selectfont}
+  {CHAPTER \thechapter}
+  {12pt}
+  {\fontsize{16}{20}\selectfont}
+
+\titleformat{\section}
+  {\normalfont\bfseries\fontsize{14}{18}\selectfont}
+  {\thesection}
+  {0.5em}
+  {}
+
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{16}\selectfont}
+  {\thesubsection}
+  {0.5em}
+  {}
+
+\captionsetup{font=small,labelfont=normal}
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\newcommand{\placeholderfigure}[1]{%
+  \fbox{%
+    \begin{minipage}[c][2.25in][c]{0.88\textwidth}
+      \centering
+      \textbf{Diagram Placeholder}\\[8pt]
+      #1\\[8pt]
+      Render the matching Mermaid diagram from \texttt{diagrams\_mermaid.md} and insert it here.
+    \end{minipage}
+  }
+}
+
+\begin{document}
+
+% ---------------------------------------------------------------------------
+% Cover Page
+% ---------------------------------------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+\vspace*{0.5in}
+{\bfseries\fontsize{18}{22}\selectfont SIMULAB: VIRTUAL LAB AND CONCEPT LEARNING PLATFORM\par}
+\vspace{0.6in}
+{\bfseries\fontsize{14}{18}\selectfont By\par}
+\vspace{0.35in}
+{\fontsize{14}{18}\selectfont [Student Name]\par}
+{\fontsize{14}{18}\selectfont Roll: [Roll Number]\par}
+\vspace{0.2in}
+{\fontsize{14}{18}\selectfont [Second Student Name, if any]\par}
+{\fontsize{14}{18}\selectfont Roll: [Second Roll Number, if any]\par}
+\vspace{0.8in}
+{\fontsize{14}{18}\selectfont CSE 3200: System Development Project\par}
+\vfill
+{\bfseries\fontsize{12}{15}\selectfont Department of Computer Science and Engineering\par}
+{\fontsize{12}{15}\selectfont Khulna University of Engineering \& Technology\par}
+{\fontsize{12}{15}\selectfont Khulna 9203, Bangladesh\par}
+{\fontsize{12}{15}\selectfont [Submission Month, Year]\par}
+\end{titlepage}
+
+% ---------------------------------------------------------------------------
+% Title Page
+% ---------------------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+\begin{titlepage}
+\centering
+\vspace*{0.35in}
+{\bfseries\fontsize{16}{20}\selectfont SimuLab: Virtual Lab and Concept Learning Platform\par}
+\vspace{0.55in}
+{\bfseries\fontsize{12}{16}\selectfont By\par}
+\vspace{0.3in}
+{\fontsize{12}{16}\selectfont [Student Name]\par}
+{\fontsize{12}{16}\selectfont Roll: [Roll Number]\par}
+\vspace{0.15in}
+{\fontsize{12}{16}\selectfont [Second Student Name, if any]\par}
+{\fontsize{12}{16}\selectfont Roll: [Second Roll Number, if any]\par}
+\vspace{0.65in}
+\begin{flushleft}
+\textbf{Supervisor:}\\[6pt]
+[Supervisor Name] \hfill \rule{1.7in}{0.4pt}\\
+[Supervisor Designation] \hfill Signature\\
+Department of Computer Science and Engineering\\
+Khulna University of Engineering \& Technology
+\end{flushleft}
+\vfill
+{\fontsize{12}{16}\selectfont Department of Computer Science and Engineering\par}
+{\fontsize{12}{16}\selectfont Khulna University of Engineering \& Technology\par}
+{\fontsize{12}{16}\selectfont Khulna 9203, Bangladesh\par}
+{\fontsize{12}{16}\selectfont [Submission Month, Year]\par}
+\end{titlepage}
+
+\chapter*{Acknowledgment}
+\addcontentsline{toc}{chapter}{Acknowledgment}
+All praise is due to Almighty Allah, whose mercy and blessings helped us complete this project work successfully. We express our sincere gratitude to our honorable supervisor, [Supervisor Name], Department of Computer Science and Engineering, Khulna University of Engineering \& Technology, for valuable guidance, technical suggestions, encouragement, and continuous support throughout the development of this project.
+
+We are also thankful to the respected teachers of the Department of Computer Science and Engineering for providing the academic foundation that made this work possible. Their courses on software engineering, database systems, web development, algorithms, and system design directly supported the design and implementation of the project. We acknowledge the assistance of our classmates and friends who provided feedback during demonstration, usability observation, and documentation preparation.
+
+Finally, we express gratitude to our family members for their patience, motivation, and support during the project development period. Their encouragement helped us remain focused while solving technical problems and preparing this final report.
+
+\begin{flushright}
+Authors
+\end{flushright}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+SimuLab is a browser-based virtual lab and concept learning platform designed to support interactive science and mathematics education. Many students face difficulty understanding scientific and mathematical concepts through static text, classroom explanation, or limited physical laboratory access. Real laboratories are valuable, but they are often constrained by cost, equipment availability, safety, time, and the need for repeated practice. SimuLab addresses this gap by providing a web application where learners can open tutorials, run virtual experiments, observe visual simulations, collect data, validate results, save progress, generate lab reports, and submit work for instructor review.
+
+The system was developed using Next.js, React, TypeScript, Tailwind CSS, Matter.js, Recharts, MongoDB, and Mongoose. It includes user authentication, role-based access control, student dashboards, tutorial modules, lab workspaces, progress tracking, experiment persistence, validation and evidence summaries, assignment management, instructor review, admin tools, and an authoring studio for creating new concept definitions. The implemented lab modules cover physics, chemistry, and mathematics, including free fall, projectile motion, simple pendulum, elastic collision, electric fields, simple circuits, wave interference, ray optics, acid-base reactions, titration, electrolysis, flame test, crystallization, displacement reaction, Pythagorean theorem, trigonometry, circle theorems, and derivative intuition.
+
+The project follows a layered web architecture in which the presentation layer handles interaction, the logic layer manages simulation, validation, reporting, and analytics, and the data layer stores users, tutorials, experiments, assignments, progress, reviews, and authored definitions in MongoDB. The report presents the problem background, related work, methodology, system design, implementation details, test and evaluation approach, ethical and safety considerations, complex engineering problem analysis, limitations, and future extension opportunities. SimuLab demonstrates how modern web technologies can be used to create an educational platform that is practical, expandable, and suitable for academic demonstration.
+
+\tableofcontents
+\listoftables
+\listoffigures
+
+\clearpage
+\pagenumbering{arabic}
+
+% ---------------------------------------------------------------------------
+\chapter{Introduction}
+
+\section{Introduction}
+Science and mathematics education depends on observation, experimentation, reasoning, and repeated practice. However, many learners experience these subjects mainly through textbook formulas, static diagrams, and classroom lectures. When a concept involves motion, force, changing chemical states, electrical behavior, geometry, or graphical relationships, a static explanation is often not enough. Students may memorize equations without understanding how variables affect one another.
+
+SimuLab was developed as a virtual lab and concept learning platform to make this learning process more interactive. It allows students to use a browser to perform experiments, observe simulations, collect data, compare results with theory, save progress, and prepare lab reports. It also gives teachers and administrators a structured workflow for assignment creation, submission review, feedback, student progress observation, and concept authoring.
+
+The project is not intended to replace all physical laboratory activities. Instead, it works as a supportive learning system. It helps students practice before a real lab, repeat experiments after class, explore unsafe or expensive scenarios in a controlled way, and build confidence in the relationship between theory and observation.
+
+\section{Background and Problem Statement}
+In many educational institutions, physical laboratory resources are limited. A class may contain more students than the number of available instruments. Some experiments require expensive devices, chemical materials, careful supervision, or strict safety conditions. Even when equipment is available, each student may not get enough time to vary parameters and repeat trials.
+
+Another problem is that scientific concepts are often abstract. For example, projectile motion involves two-dimensional movement, velocity components, gravity, and changing height over time. Students may calculate range and time of flight but still fail to visualize why the path is parabolic. Similarly, chemistry reactions can involve invisible concentration changes, pH variation, or state transitions that are difficult to observe directly.
+
+The problem addressed in this project is therefore the lack of an integrated, accessible, and interactive learning environment where students can study concepts, perform virtual experiments, preserve their work, validate results, and communicate findings through reports. A simple animation alone is not enough; the platform must also include learning content, persistence, progress tracking, evidence, assignment, and review features.
+
+\section{Objectives}
+The main objective of SimuLab is to build an interactive virtual lab platform that improves conceptual learning through simulation, data, and guided workflows. The specific objectives are:
+
+\begin{enumerate}[label=\arabic*.]
+\item To provide browser-based virtual experiments for selected physics, chemistry, and mathematics concepts.
+\item To allow students to interact with simulation parameters and observe immediate changes in output.
+\item To include tutorial pages that explain concepts, objectives, formulas, and learning steps.
+\item To store experiment state, reports, progress, and evidence in MongoDB.
+\item To implement role-based access for students, teachers, and administrators.
+\item To support assignment creation, student submission, instructor review, and feedback.
+\item To generate structured lab reports from experiment data.
+\item To provide validation summaries by comparing measured outputs with theoretical results where possible.
+\item To support future expansion through an authoring studio for new concept definitions.
+\item To prepare a system that is suitable for demonstration, viva, and academic assessment.
+\end{enumerate}
+
+\section{Scope}
+The scope of the project includes web-based learning modules, tutorial content, lab simulation workspaces, student and instructor workflows, MongoDB persistence, role-based access control, report generation, validation, evidence summaries, and assignment management. The system currently supports three educational domains: physics, chemistry, and mathematics.
+
+The modern tools used in the project include Next.js 14 for the full-stack web application, React 18 for component-based user interfaces, TypeScript for type-safe development, Tailwind CSS for responsive styling, Matter.js for 2D physics support, Recharts for data visualization, MongoDB for persistent storage, Mongoose for object data modeling, and Vitest for automated tests.
+
+The project scope does not include industrial-scale deployment, a complete learning management system, real-time multiplayer collaboration, hardware sensor integration, or full replacement of physical laboratory assessment. These areas are considered possible future extensions.
+
+\section{Unfamiliarity of the Problem, Topic, and Solution}
+Virtual lab applications and educational simulation tools exist, but the implemented project idea is not directly copied from a single source. SimuLab combines several workflows into one student project: simulation, tutorial guidance, persistent experiment state, lab report generation, validation, evidence summary, assignment management, instructor review, admin tools, and authoring of new concept definitions.
+
+The unfamiliarity of the work appears in the integration problem. A basic virtual lab may only display an animation. SimuLab attempts to connect that animation with learning records and academic review. A student can run a lab, collect data, save the state, generate a report, submit it, and receive feedback. A teacher can create assignments from labs or tutorials and inspect submitted evidence. The authoring studio also allows future concepts to be defined without editing every part of the source code manually.
+
+\section{Project Planning and Work Distribution}
+Project planning was divided into requirement analysis, system design, implementation, testing, documentation, and final presentation preparation. The planning approach followed an incremental model. Core simulation and routing were developed first, then persistence, tutorials, dashboards, validation, review, assignment, and authoring features were added.
+
+\begin{table}[H]
+\centering
+\caption{Project planning and work distribution}
+\begin{tabular}{p{0.24\textwidth} p{0.34\textwidth} p{0.30\textwidth}}
+\toprule
+\textbf{Phase} & \textbf{Main Work} & \textbf{Responsible Member} \\
+\midrule
+Requirement analysis & Problem study, user roles, feature list, SRS preparation & [Student Name] / [Second Student Name] \\
+System design & Architecture, database design, workflow diagrams, UI planning & [Student Name] / [Second Student Name] \\
+Implementation & Next.js routes, workbench components, API routes, models, validation, reports & [Student Name] / [Second Student Name] \\
+Testing & Unit tests, API tests, manual workflow testing, usability review & [Student Name] / [Second Student Name] \\
+Documentation & Final report, user manual, diagrams, presentation material & [Student Name] / [Second Student Name] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 1.1: Gantt chart showing project activities from planning to final documentation.}
+\caption{Gantt chart of project plan}
+\end{figure}
+
+\section{Applications of the Work}
+SimuLab can be applied in schools, colleges, universities, coaching centers, and remote learning environments. Students can use it for self-practice and pre-lab preparation. Teachers can use it for assignment-based learning and demonstration. Supervisors can use the showcase and evidence features to evaluate whether the project has meaningful engineering value.
+
+The platform is also useful where laboratory resources are limited. It gives learners a repeatable environment where they can change parameters, run trials, and observe relationships between theory and output. The authoring approach makes the project useful as a base for adding new modules in the future.
+
+\section{Organization of the Project}
+This report is organized into seven chapters. Chapter I introduces the project, problem background, objectives, scope, planning, and applications. Chapter II presents related works and compares existing approaches with the proposed system. Chapter III describes the methodology, requirements, architecture, workflow, data model, and diagrams. Chapter IV explains implementation, results, testing, and objective achievement. Chapter V discusses societal, health, environmental, safety, ethical, legal, and cultural issues. Chapter VI analyzes complex engineering problems and activities. Chapter VII concludes the report with summary, limitations, recommendations, and future work.
+
+% ---------------------------------------------------------------------------
+\chapter{Related Works}
+
+\section{Introduction}
+Educational simulation is a widely used approach for improving understanding in science, engineering, and mathematics. Many online tools help learners visualize physical motion, chemical reaction behavior, geometry, or electrical systems. Learning management systems also help teachers assign and review student activities. However, many systems focus strongly on only one part of the learning process.
+
+This chapter discusses relevant categories of existing work and explains how SimuLab is positioned among them. The purpose is not to claim that virtual laboratories are new, but to identify the specific contribution of this project as an integrated web-based learning platform for simulation, tutorials, persistence, validation, reporting, assignment, review, and authoring.
+
+\section{Virtual Laboratory Platforms}
+Virtual laboratory platforms allow learners to perform experiments through a digital interface. These systems are useful when physical equipment is unavailable or when repeated experimentation is needed. Many virtual labs offer interactive controls and animated results. They help students understand phenomena by changing input values and observing output changes.
+
+The limitation of many simple virtual labs is that they do not preserve full learning workflow data. A learner may run an experiment, but the platform may not include a structured report generator, instructor review queue, role-based assignment, or authoring facility. SimuLab addresses this limitation by connecting the simulation workspace with storage, progress tracking, report generation, evidence, and review.
+
+\section{Physics Simulation Tools}
+Physics simulation tools are often used to demonstrate motion, force, collision, pendulum behavior, circuits, waves, optics, and fields. Game and physics engines can calculate object movement and collision behavior in real time. Matter.js is one such JavaScript-based 2D physics engine that can be integrated with web applications.
+
+In SimuLab, physics modules are supported through both custom equations and engine-based simulation. For example, free fall and projectile motion include mathematical validation, while collision and pendulum modules demonstrate conservation and periodic motion. The system also includes electric fields, simple circuits, wave interference, and ray optics to broaden the educational coverage.
+
+\section{Chemistry Simulation and State-Based Learning}
+Chemistry simulations help learners understand reactions, concentration, color change, pH, and process stages. Some chemical phenomena are difficult to observe safely in a classroom, while others occur at a scale that is not directly visible. A digital system can show reaction progress, intermediate states, and numerical outputs in a controlled way.
+
+SimuLab includes chemistry workbenches such as acid-base neutralization, titration, electrolysis of water, flame test, crystallization, and metal displacement. These modules use state variables, charts, and recorded data to help learners connect observation with explanation. The chemistry module also demonstrates safety value because learners can explore reaction behavior without direct exposure to hazardous materials.
+
+\section{Mathematics Visualization Systems}
+Mathematics concepts often become clearer when learners can manipulate visual representations. Geometry, trigonometry, and calculus topics especially benefit from interactive diagrams. SimuLab includes Pythagorean theorem, trigonometric ratios, circle theorems, and derivative intuition modules. These modules support the larger goal of concept learning, not only laboratory experimentation.
+
+\section{Learning Management and Review Systems}
+Learning management systems usually include course content, assignments, submissions, grades, and feedback. However, they may not include domain-specific simulation workspaces. SimuLab takes a smaller but more focused approach. It includes assignment creation, student visibility, submission, review status, feedback, and progress analytics directly connected with virtual labs and tutorials.
+
+\section{Comparison with Existing Approaches}
+\begin{table}[H]
+\centering
+\caption{Comparison of related approaches with SimuLab}
+\begin{tabular}{p{0.22\textwidth} p{0.26\textwidth} p{0.26\textwidth} p{0.16\textwidth}}
+\toprule
+\textbf{Approach} & \textbf{Strength} & \textbf{Limitation} & \textbf{SimuLab Response} \\
+\midrule
+Standalone animation & Easy to understand visually & Usually no persistence or review & Adds save, report, evidence, and feedback \\
+Virtual lab website & Supports practice outside classroom & Often fixed modules only & Adds authoring workflow for future modules \\
+Learning management system & Strong assignment workflow & Usually lacks simulation engine & Connects assignment with lab and tutorial data \\
+Manual lab report & Improves communication skill & Time consuming and disconnected from raw data & Generates editable report from stored experiment data \\
+Spreadsheet analysis & Useful for numerical analysis & Not beginner friendly for simulation & Provides charts and summaries inside the lab workspace \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+The review shows that SimuLab combines ideas from virtual laboratories, simulation engines, tutorial systems, learning management systems, and reporting tools. Its value lies in integration. The system is suitable for a student software engineering project because it includes multiple user roles, real database models, API routes, interactive user interfaces, validation logic, and documentation-ready outputs.
+
+The problem idea is therefore not acquired directly from one existing source. Rather, it is a practical composition of several educational software ideas into a single web application designed for academic use.
+
+% ---------------------------------------------------------------------------
+\chapter{Methodology}
+
+\section{Introduction}
+The methodology of SimuLab follows an incremental software development process. The project began with problem analysis and user identification, followed by requirement specification, system design, database modeling, module implementation, workflow integration, testing, and documentation. Each stage improved the previous one until the system became a broader learning platform rather than only a collection of experiment pages.
+
+\section{Detailed Methodology}
+The detailed methodology contains the following steps:
+
+\begin{enumerate}[label=\arabic*.]
+\item Identify learning problems related to limited lab access and abstract concept understanding.
+\item Define major users: student, teacher, admin, and supervisor or evaluator.
+\item Prepare functional and non-functional requirements.
+\item Design layered architecture using frontend, logic, API, and database layers.
+\item Implement authentication and role-based access control.
+\item Develop tutorial and lab routes.
+\item Build simulation workbenches and data collection tools.
+\item Connect MongoDB models with API routes.
+\item Add report, validation, evidence, review, assignment, and progress workflows.
+\item Add concept authoring support for future expansion.
+\item Test API routes, utility functions, validation logic, and user workflows.
+\item Prepare final documentation and diagrams.
+\end{enumerate}
+
+\section{Problem Design and Analysis}
+The primary design challenge was to support both learning and assessment. A student-facing module must be simple enough for learners to use, but the system must also preserve enough data for teacher evaluation. Therefore, the problem was divided into user interaction, simulation, persistence, analytics, and review.
+
+The system handles three main learning paths. First, a student may open a tutorial and study guided content. Second, a student may open a lab, manipulate controls, collect data, generate a report, and submit the work. Third, a teacher may create assignments and review submitted work. These paths share common data models and authentication policies.
+
+\section{Overall Framework}
+SimuLab follows a layered architecture. The frontend is built with Next.js App Router and React components. The logic layer contains simulation helpers, experiment definitions, validation, evidence generation, assignment analytics, and report generation. The backend uses Next.js API routes. MongoDB with Mongoose stores users, experiments, tutorials, progress, assignments, reviews, and authored concept definitions.
+
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.1: Overall system architecture showing users, frontend, logic layer, API routes, and MongoDB.}
+\caption{Overall framework of SimuLab}
+\end{figure}
+
+\section{User and Stakeholder Analysis}
+The main users of the system are students, teachers, and administrators. Students use tutorials, labs, progress dashboards, report generation, and submission features. Teachers create assignments, monitor completion, review submissions, and create new concept definitions. Administrators manage student records and can access teacher-level workflows. Supervisors and evaluators are indirect stakeholders who assess educational value, engineering quality, and documentation quality.
+
+\section{Functional Requirements}
+\begin{longtable}{p{0.22\textwidth} p{0.68\textwidth}}
+\caption{Functional requirements of SimuLab}\\
+\toprule
+\textbf{Requirement Area} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requirement Area} & \textbf{Description} \\
+\midrule
+\endhead
+Authentication & The system shall allow registration, login, logout, session checking, and role-based access. \\
+Tutorial Management & The system shall display tutorials by category and track tutorial progress. \\
+Lab Workspace & The system shall open lab modules, allow parameter changes, collect output, and restore saved state. \\
+Experiment Persistence & The system shall save title, type, state snapshot, report, validation, evidence, status, and review data. \\
+Progress Tracking & The system shall store tutorial progress, lab progress, achievements, and dashboard statistics. \\
+Report Workflow & The system shall generate editable lab reports from experiment data and save them with the experiment. \\
+Validation & The system shall compare measured and theoretical values where validation rules are implemented. \\
+Evidence & The system shall summarize sample count, numeric variables, stored outputs, tools used, and review status. \\
+Review & The system shall allow teachers and admins to review submitted work and provide feedback. \\
+Assignment & The system shall allow teachers/admins to create lab or tutorial assignments for students or classes. \\
+Authoring & The system shall allow teachers/admins to create MongoDB-backed concept definitions. \\
+Showcase & The system shall provide a presentation-friendly dashboard for demonstration and viva. \\
+\bottomrule
+\end{longtable}
+
+\section{Non-Functional Requirements}
+\begin{table}[H]
+\centering
+\caption{Non-functional requirements}
+\begin{tabular}{p{0.24\textwidth} p{0.62\textwidth}}
+\toprule
+\textbf{Quality Attribute} & \textbf{Requirement} \\
+\midrule
+Usability & The interface should be understandable for students and teachers using a modern browser. \\
+Performance & Simulation and dashboard interactions should remain responsive under normal project demonstration load. \\
+Reliability & Saved experiment state, progress, and reports should persist correctly in MongoDB. \\
+Maintainability & Modules should be separated by routes, components, utilities, models, and reusable definitions. \\
+Security & Sensitive actions should be protected through authentication and role-based checks. \\
+Scalability & New concepts should be easier to add through registry-driven and authored definitions. \\
+Portability & The project should run in a standard Node.js and MongoDB development environment. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Use Case Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.2: Use case diagram for Student, Teacher, Admin, and Supervisor/Evaluator.}
+\caption{Use case diagram of SimuLab}
+\end{figure}
+
+The use case design includes actions such as register, login, view tutorials, run lab, save progress, generate report, submit work, view assignments, create assignment, review submission, manage students, create concept definition, and view showcase dashboard. The use case diagram is provided as Mermaid code in the diagram file.
+
+\section{Activity Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.3: Activity diagram from login to lab completion and instructor review.}
+\caption{Activity diagram of lab workflow}
+\end{figure}
+
+The activity flow begins when a user logs in. If the user is a student, the system displays dashboard, tutorials, assigned work, and labs. The student selects a lab, performs the activity, saves a draft, generates a report, and submits the work. The teacher then opens the review queue, checks report and evidence, writes feedback, and updates review status.
+
+\section{Data Flow Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.4: Data Flow Diagram showing UI, API routes, logic services, and MongoDB collections.}
+\caption{Data flow diagram of SimuLab}
+\end{figure}
+
+The data flow diagram shows that user actions from the browser are sent to API routes. API routes validate authentication and roles, execute logic helpers, and communicate with MongoDB models. Responses return to dashboards, lab pages, tutorial pages, review queue, or assignment manager.
+
+\section{Control Flow Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.5: Control flow diagram of authentication, route checks, API processing, and response handling.}
+\caption{Control flow diagram}
+\end{figure}
+
+Control flow is based on session status and user role. Public pages such as login and register are accessible without authentication. Protected routes require a valid session. Instructor and admin routes require teacher or admin privileges. API routes use role-based policies before performing sensitive actions.
+
+\section{Class and Data Model Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.6: Class diagram showing User, Experiment, Tutorial, UserProgress, Assignment, ConceptDefinition, and relationships.}
+\caption{Class diagram of main models}
+\end{figure}
+
+\begin{longtable}{p{0.22\textwidth} p{0.64\textwidth}}
+\caption{Main database entities}\\
+\toprule
+\textbf{Entity} & \textbf{Purpose} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Entity} & \textbf{Purpose} \\
+\midrule
+\endhead
+User & Stores name, email, password hash, role, institution, and grade. \\
+Experiment & Stores owner, title, type, category, saved state, results, report, status, validation, evidence, and review data. \\
+Tutorial & Stores experiment id, experiment name, category, description, objectives, and chapters. \\
+UserProgress & Stores completed steps, achievements, tutorial progress, lab progress, and statistics. \\
+Assignment & Stores assignment title, source type, source id, due date, target students, target classes, and creator information. \\
+ConceptDefinition & Stores authored module metadata, controls, formulas, charts, tutorial chapters, validation rules, default state, and publication status. \\
+\bottomrule
+\end{longtable}
+
+\section{State Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.7: State machine diagram showing experiment states from draft to submitted and reviewed.}
+\caption{State diagram of experiment lifecycle}
+\end{figure}
+
+An experiment can be in draft, completed, submitted, pending review, approved, or changes requested states. The state design makes the workflow clear for students and teachers. A draft can be saved and continued. Completed work can be submitted. Submitted work enters the review queue. A teacher can approve it or request changes.
+
+\section{Sequence Design}
+\begin{figure}[H]
+\centering
+\placeholderfigure{Figure 3.8: Sequence diagram for saving, submitting, and reviewing a lab experiment.}
+\caption{Sequence diagram of submission and review}
+\end{figure}
+
+The sequence design explains how the student interface, API route, authentication helper, experiment model, validation helper, evidence builder, and review interface communicate during a typical lab submission.
+
+\section{Algorithmic and Validation Approach}
+The validation approach compares measured results with theoretical values where possible. For free fall, displacement and velocity are compared with the equations:
+
+\[
+d = \frac{1}{2}gt^2
+\]
+
+\[
+v = gt
+\]
+
+For projectile motion, measured range, maximum height, and time of flight are compared with analytical projectile motion equations. For pendulum, measured period can be compared with:
+
+\[
+T = 2\pi \sqrt{\frac{L}{g}}
+\]
+
+The validation output includes theoretical value, measured value, unit, tolerance percentage, error percentage, pass/fail status, pass rate, accuracy score, and notes. If data is insufficient or validation is not configured for a module, the system reports that status instead of producing misleading results.
+
+\section{Conclusion}
+The methodology combines structured software engineering with practical educational system design. By separating requirements, architecture, workflows, models, simulation logic, validation, and review, SimuLab becomes easier to understand, maintain, and extend.
+
+% ---------------------------------------------------------------------------
+\chapter{Implementation, Results and Discussions}
+
+\section{Introduction}
+This chapter describes the implementation environment, technologies, modules, workflows, results, and evaluation of SimuLab. The implementation was completed as a full-stack web application using a modern JavaScript and TypeScript stack.
+
+\section{Experimental Setup}
+\begin{table}[H]
+\centering
+\caption{Experimental setup and development environment}
+\begin{tabular}{p{0.30\textwidth} p{0.52\textwidth}}
+\toprule
+\textbf{Item} & \textbf{Description} \\
+\midrule
+Frontend framework & Next.js 14 with React 18 \\
+Programming language & TypeScript \\
+Styling & Tailwind CSS \\
+Physics simulation & Matter.js and custom equation-based engines \\
+Charts & Recharts \\
+Database & MongoDB \\
+ODM & Mongoose \\
+Authentication & Custom cookie-based auth helpers with role checks \\
+Testing & Vitest \\
+Runtime & Node.js and modern web browser \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementation Overview}
+The project source is organized into app routes, API routes, reusable components, workbench components, analysis components, engine files, library utilities, database models, scripts, and tests. The main frontend pages include login, register, dashboard, tutorials, lab workspace, instructor dashboard, assignments, reviews, authoring, showcase, admin dashboard, and student records.
+
+The backend is implemented using API route groups such as authentication, experiments, tutorials, progress, reviews, assignments, authoring, and students. Each API route performs input handling, authentication or role checking, database operations, and JSON response generation.
+
+\section{Implemented Modules}
+\begin{longtable}{p{0.27\textwidth} p{0.17\textwidth} p{0.44\textwidth}}
+\caption{Implemented learning modules}\\
+\toprule
+\textbf{Module} & \textbf{Domain} & \textbf{Learning Focus} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Module} & \textbf{Domain} & \textbf{Learning Focus} \\
+\midrule
+\endhead
+Free Fall & Physics & Gravity, acceleration, velocity-time relation \\
+Projectile Motion & Physics & Two-dimensional motion and trajectory \\
+Simple Pendulum & Physics & Periodic motion and energy behavior \\
+Elastic Collision & Physics & Momentum and energy conservation \\
+Electric Fields & Physics & Field strength and charge relation \\
+Simple Circuits & Physics & Resistance, current, voltage, series and parallel behavior \\
+Wave Interference & Physics & Superposition and wave pattern \\
+Ray Optics & Physics & Refraction and light path \\
+Acid-Base Neutralization & Chemistry & Reaction, pH, and neutralization \\
+Acid-Base Titration & Chemistry & Concentration and endpoint observation \\
+Electrolysis of Water & Chemistry & Chemical decomposition using electricity \\
+Flame Test & Chemistry & Ion identification through flame color \\
+Crystallization & Chemistry & Solution and crystal formation process \\
+Metal Displacement & Chemistry & Reactivity and displacement reaction \\
+Pythagorean Theorem & Mathematics & Relation among sides of right triangle \\
+Trigonometric Ratios & Mathematics & Sine, cosine, tangent and angle relation \\
+Circle Theorems & Mathematics & Angle relation in circle geometry \\
+Derivative and Slope & Mathematics & Rate of change and tangent slope \\
+\bottomrule
+\end{longtable}
+
+\section{Authentication and Role-Based Access}
+The system defines three major roles: student, teacher, and admin. Students can use tutorials, labs, reports, progress, and assignments. Teachers can create assignments, review submissions, use the authoring studio, and open the showcase dashboard. Admins can manage students and access teacher-level tools.
+
+Role-based policies protect sensitive operations such as assignment creation, review update, student management, and authoring. This design prevents normal students from modifying privileged data.
+
+\section{Lab Workspace Implementation}
+The lab workspace is opened using routes such as \texttt{/lab/[experimentId]}. The workspace loads experiment definitions, controls, formulas, charts, validation rules, default state, and workbench-specific UI. Students can manipulate controls, run activities, capture data, save drafts, mark work completed, generate reports, and submit.
+
+Analysis components include live charts, data tables, validation dashboard, evidence panel, export button, position graph, velocity graph, energy graph, trajectory canvas, and report panel. This makes the lab workspace both interactive and documentation-ready.
+
+\section{Tutorial Implementation}
+Tutorial routes display content by experiment id. Tutorial records include experiment name, category, description, objectives, and chapters. Tutorial progress is stored so that the student dashboard can show learning status. This connection between tutorial and lab helps learners move from theory to practice.
+
+\section{Report Generation}
+The report generator prepares structured text from experiment title, type, results, validation, evidence, and observations. The generated report is editable before saving. This is important because a lab report should not be only automatic output; students should still review, interpret, and explain results.
+
+\section{Validation and Evidence}
+Validation checks compare measured values with expected or theoretical values. Evidence summaries collect sample count, numeric variables, time window, statistics, validation status, tools used, stored outputs, and review status. Together, validation and evidence support instructor review and academic demonstration.
+
+\section{Assignment and Review Workflow}
+Teachers and admins can create assignments from lab or tutorial sources. Assignments can target individual students or class groups. Students see assigned work in their dashboard and can open the related lab or tutorial directly. After a student submits work, the instructor can review the report, validation, and evidence, then approve the submission or request changes.
+
+\section{Authoring Studio}
+The authoring studio allows teacher/admin users to define new concept modules by entering metadata, controls, formulas, chart settings, tutorial chapters, validation rules, and default state. The definition is stored in MongoDB and can be used by assignment and tutorial workflows. This feature improves extensibility because new concepts do not always require full hardcoded implementation.
+
+\section{Evaluation Metrics}
+\begin{table}[H]
+\centering
+\caption{Evaluation metrics}
+\begin{tabular}{p{0.28\textwidth} p{0.54\textwidth}}
+\toprule
+\textbf{Metric} & \textbf{Purpose} \\
+\midrule
+Functional completeness & Checks whether planned features are implemented. \\
+Workflow success & Checks whether student and teacher paths can be completed. \\
+Persistence correctness & Checks whether saved data can be restored from MongoDB. \\
+Validation usefulness & Checks whether theoretical comparison is meaningful where supported. \\
+Usability observation & Checks whether users can understand basic navigation. \\
+Maintainability & Checks whether modules are separated and extendable. \\
+Test coverage & Checks important helpers and API routes using automated tests. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Dataset}
+The project does not depend on an external fixed dataset. It generates learning data from user interaction. The main data sources are user accounts, tutorial records, experiment state snapshots, measurement arrays, generated reports, validation outputs, evidence summaries, progress records, assignments, review feedback, and concept definitions.
+
+For example, a free fall experiment produces time, position, velocity, and speed data. A projectile motion experiment produces horizontal position, height, velocity components, measured range, maximum height, and time of flight. Chemistry modules produce state and reaction-related records, while mathematics modules produce geometry or calculus samples.
+
+\section{Qualitative Results}
+Qualitative results show that SimuLab provides an understandable learning flow. Students can move from tutorial to lab, observe the simulation, change parameters, view charts, and generate reports. Teachers can assign and review work using dashboards. The authoring studio demonstrates that the platform can grow beyond the initial module list.
+
+The system also improves demonstration quality. During viva or project evaluation, the showcase dashboard can be used to explain modules, roles, validation coverage, evidence readiness, and learning analytics.
+
+\section{Quantitative Results}
+\begin{table}[H]
+\centering
+\caption{Summary of implemented feature coverage}
+\begin{tabular}{p{0.36\textwidth} p{0.18\textwidth} p{0.30\textwidth}}
+\toprule
+\textbf{Feature Area} & \textbf{Status} & \textbf{Remarks} \\
+\midrule
+Authentication and roles & Implemented & Student, teacher, admin \\
+Tutorial pages & Implemented & Category and experiment based \\
+Lab workspaces & Implemented & Multiple domains supported \\
+Experiment persistence & Implemented & MongoDB-backed \\
+Progress tracking & Implemented & Dashboard integration \\
+Report generation & Implemented & Editable report text \\
+Validation summary & Implemented & Supported for selected modules \\
+Evidence summary & Implemented & Review-ready information \\
+Assignment workflow & Implemented & Lab and tutorial source support \\
+Review workflow & Implemented & Feedback and status update \\
+Authoring studio & Implemented & MongoDB-backed concept definitions \\
+Automated tests & Implemented & API, engine, utility tests \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Testing Discussion}
+The project includes automated tests for engine logic, authentication routes, experiment routes, tutorial routes, progress route, assignment route, review routes, authoring route, validation helper, evidence helper, authored definitions, experiment definitions, lab session builder, and assignment analytics. Manual testing was also performed by navigating student, teacher, and admin workflows.
+
+\begin{table}[H]
+\centering
+\caption{Representative test scenarios}
+\begin{tabular}{p{0.30\textwidth} p{0.38\textwidth} p{0.20\textwidth}}
+\toprule
+\textbf{Scenario} & \textbf{Expected Result} & \textbf{Type} \\
+\midrule
+Student login & Valid user receives session and dashboard access & API/manual \\
+Save lab draft & Experiment state is stored in MongoDB & API/manual \\
+Generate report & Report text is created from available data & Functional/manual \\
+Submit experiment & Work appears in instructor review queue & Workflow/manual \\
+Teacher review & Feedback and status are stored & API/manual \\
+Create assignment & Assigned students can view work & API/manual \\
+Create concept definition & Definition is saved and becomes available & API/manual \\
+Validation helper & Error and pass rate are calculated correctly & Unit \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Objective Achieved}
+\begin{table}[H]
+\centering
+\caption{Objective achievement summary}
+\begin{tabular}{p{0.46\textwidth} p{0.38\textwidth}}
+\toprule
+\textbf{Objective} & \textbf{Achievement} \\
+\midrule
+Provide interactive modules & Multiple physics, chemistry, and math modules implemented \\
+Support tutorials & Tutorial pages and progress tracking implemented \\
+Save and restore work & MongoDB experiment persistence implemented \\
+Generate reports & Lab report panel and generator implemented \\
+Validate results & Validation dashboard implemented for supported modules \\
+Support teacher workflow & Assignments, reviews, feedback, and showcase implemented \\
+Support admin workflow & Admin dashboard and student management routes implemented \\
+Enable future expansion & Authoring studio and concept definition model implemented \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+The implementation results show that SimuLab satisfies the major goals of the project. It is not only a simulation page; it is a structured learning platform with persistence, reporting, validation, assignment, review, and authoring features. The system is suitable for project demonstration and further enhancement.
+
+% ---------------------------------------------------------------------------
+\chapter{Societal, Health, Environment, Safety, Ethical, Legal and Cultural Issues}
+
+\section{Intellectual Property Considerations}
+The project uses open-source technologies such as Next.js, React, TypeScript, Tailwind CSS, Matter.js, Recharts, MongoDB tools, and Mongoose. These tools should be used according to their respective licenses. The project source code, documentation, diagrams, and report should clearly distinguish original implementation from third-party libraries and referenced materials.
+
+Educational content, formulas, and scientific principles are based on standard academic knowledge. However, textual explanations, UI design, code structure, and workflow integration should be treated as project work. Any copied external content should be avoided or cited properly.
+
+\section{Ethical Considerations}
+The system stores user information, progress, reports, assignments, and review feedback. Therefore, it must respect privacy and fair use of student data. Teachers and admins should only access data required for educational purposes. Students should not be able to view or modify other students' private records.
+
+The system should also avoid misleading learners. Validation output must clearly show when data is insufficient or validation is unavailable. A virtual lab should not present simulated output as a perfect replacement for all real physical observations.
+
+\section{Safety Considerations}
+SimuLab improves safety by allowing students to explore chemical reactions, electrical concepts, and physical behavior in a digital environment before entering a real lab. This reduces risk during early learning. For example, electrolysis, acid-base behavior, and flame tests can be introduced visually without immediate exposure to laboratory hazards.
+
+However, if students later perform real experiments, they must follow actual laboratory safety rules. SimuLab should be considered a learning support tool, not a substitute for safety training.
+
+\section{Legal Considerations}
+The system should follow software license requirements for all libraries used. If deployed publicly, it should include privacy policy considerations, account security practices, and responsible data handling. Since the project stores student-related information, access control is legally and ethically important.
+
+\section{Impact on Societal, Health, and Cultural Issues}
+SimuLab can support educational inclusion by making lab practice more accessible to students who have limited equipment access. Remote learners, students from resource-constrained institutions, and learners who need repeated practice can benefit from browser-based labs. The project can also encourage more active learning and reduce fear of difficult science and mathematics topics.
+
+From a cultural perspective, the platform can be adapted to local curricula and teaching practices. Teachers can use the authoring studio to create concept definitions that match their classroom needs.
+
+\section{Impact on Environment and Sustainability}
+Virtual experimentation can reduce repeated use of consumable lab materials during early practice. It can also reduce the need for printing manual observation sheets if reports are generated and submitted digitally. While digital systems consume electricity and server resources, the environmental cost is comparatively small for educational demonstration use.
+
+Sustainability is also reflected in software maintainability. A modular and extensible design means the project can be reused and expanded instead of discarded after one demonstration.
+
+% ---------------------------------------------------------------------------
+\chapter{Addressing Complex Engineering Problems and Activities}
+
+\section{Complex Engineering Problems Associated with the Current Project}
+SimuLab addresses several complex engineering problems. The system must combine real-time interaction, data persistence, role-based access, educational content, validation, and reporting in a single web application. These requirements interact with each other. For example, a lab state must be useful for simulation, storage, report generation, validation, evidence, and review.
+
+\begin{longtable}{p{0.30\textwidth} p{0.54\textwidth}}
+\caption{Complex engineering problems in SimuLab}\\
+\toprule
+\textbf{Problem Area} & \textbf{Explanation} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Problem Area} & \textbf{Explanation} \\
+\midrule
+\endhead
+Multi-domain modeling & The system supports physics, chemistry, and mathematics, each with different data and visualization needs. \\
+Simulation accuracy & Some modules require theoretical equations, real-time updates, and meaningful validation. \\
+State persistence & Dynamic lab state must be saved and restored without losing important user work. \\
+Role-based workflow & Students, teachers, and admins need different permissions and interfaces. \\
+Integrated assessment & Reports, evidence, validation, submission, and review must work together. \\
+Extensibility & New concepts should be addable through definitions and authoring, not only hardcoded pages. \\
+Usability & Technical simulation controls must remain understandable to learners. \\
+\bottomrule
+\end{longtable}
+
+\section{Complex Engineering Activities Associated with the Current Project}
+The project required multiple engineering activities, including requirement analysis, UI design, database schema design, API development, simulation logic, validation logic, data visualization, testing, and documentation. These activities required coordination between frontend, backend, database, and educational content.
+
+\begin{table}[H]
+\centering
+\caption{Complex engineering activities}
+\begin{tabular}{p{0.30\textwidth} p{0.54\textwidth}}
+\toprule
+\textbf{Activity} & \textbf{Project Evidence} \\
+\midrule
+Use of modern tools & Next.js, React, TypeScript, MongoDB, Mongoose, Matter.js, Recharts, Vitest \\
+Resource integration & Browser UI, API routes, database models, simulation engines, charts, reports \\
+Stakeholder interaction & Student, teacher, admin, and evaluator workflows \\
+Design decision making & Layered architecture, reusable definitions, RBAC, persistence model \\
+Testing and validation & Unit tests, API tests, workflow tests, theoretical comparison \\
+Documentation & SRS, system design, user manual, final report, diagrams \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+The complexity of SimuLab comes from integration rather than a single isolated algorithm. A project with only a projectile motion equation would be simple. A project with only a login page would also be simple. SimuLab becomes more complex because learning modules, accounts, roles, assignments, reports, validation, evidence, review, and authoring must work as one system.
+
+This makes the project appropriate for a system development course. It demonstrates problem analysis, software architecture, modular implementation, database use, testing, documentation, and awareness of broader impacts.
+
+% ---------------------------------------------------------------------------
+\chapter{Conclusions}
+
+\section{Summary}
+SimuLab is a virtual lab and concept learning platform that helps students learn science and mathematics through interactive experiments, tutorials, data visualization, validation, report generation, progress tracking, assignment workflow, instructor review, and concept authoring. The project was implemented using Next.js, React, TypeScript, MongoDB, Mongoose, Matter.js, Recharts, Tailwind CSS, and Vitest. It supports student, teacher, and admin roles and provides a practical foundation for academic demonstration and future extension.
+
+\section{Limitations}
+Although SimuLab provides many useful features, it has some limitations. Generic authored modules are simpler than specialized hand-built workbenches. Validation is richer for selected physics modules than for all modules. The platform is currently designed for educational demonstration and structured learning, not for large-scale institutional deployment. It also does not include real-time collaboration, advanced grading rubrics, complete LMS integration, or hardware-based laboratory data input.
+
+\section{Recommendations and Future Works}
+Future work can extend SimuLab in several ways:
+
+\begin{enumerate}[label=\arabic*.]
+\item Add more advanced simulation modules in physics, chemistry, biology, and mathematics.
+\item Improve authored modules with richer visualization and custom validation.
+\item Add rubric-based grading and marks management.
+\item Add PDF export for generated lab reports.
+\item Add collaborative lab sessions for multiple students.
+\item Add AI-assisted hints and misconception detection.
+\item Add integration with real classroom LMS platforms.
+\item Add accessibility improvements for keyboard navigation and screen readers.
+\item Add deployment hardening, audit logs, and stronger security controls.
+\item Add analytics for long-term student learning progress.
+\end{enumerate}
+
+\section{Final Conclusion}
+The completed project demonstrates that a modern web application can support meaningful virtual laboratory learning. SimuLab connects concept visualization with practical academic workflows. It allows students to learn by doing, teachers to guide and review, and evaluators to inspect evidence of implementation. With further development, it can become a stronger educational platform for blended and remote science learning.
+
+% ---------------------------------------------------------------------------
+\appendix
+\chapter{Appendix A: User Manual Summary}
+
+\section{Running the Project Locally}
+Install dependencies using \texttt{npm install}. Configure \texttt{.env.local} with \texttt{MONGODB\_URI}, \texttt{AUTH\_SECRET}, \texttt{NEXTAUTH\_SECRET}, and \texttt{NEXTAUTH\_URL}. Run the development server using \texttt{npm run dev}. Open \texttt{http://localhost:3000} in a modern browser.
+
+\section{Student Usage}
+Students log in, open tutorials, run labs, save progress, generate reports, submit completed work, and view assignments from the dashboard.
+
+\section{Teacher Usage}
+Teachers open the instructor dashboard, create assignments, review student submissions, provide feedback, use the authoring studio, and open the showcase dashboard.
+
+\section{Admin Usage}
+Admins manage student records and use teacher-level workflows such as assignment, review, authoring, and showcase.
+
+\chapter{Appendix B: Important Routes and API Groups}
+\section{Main Routes}
+\begin{itemize}
+\item \texttt{/}
+\item \texttt{/login}
+\item \texttt{/register}
+\item \texttt{/dashboard}
+\item \texttt{/tutorials}
+\item \texttt{/tutorials/[experimentId]}
+\item \texttt{/lab/[experimentId]}
+\item \texttt{/lab/new}
+\end{itemize}
+
+\section{Instructor and Admin Routes}
+\begin{itemize}
+\item \texttt{/instructor/dashboard}
+\item \texttt{/instructor/assignments}
+\item \texttt{/instructor/reviews}
+\item \texttt{/instructor/authoring}
+\item \texttt{/instructor/showcase}
+\item \texttt{/admin/dashboard}
+\item \texttt{/students/dashboard}
+\end{itemize}
+
+\section{API Groups}
+\begin{itemize}
+\item \texttt{/api/auth}
+\item \texttt{/api/experiments}
+\item \texttt{/api/tutorials}
+\item \texttt{/api/progress}
+\item \texttt{/api/reviews}
+\item \texttt{/api/assignments}
+\item \texttt{/api/authoring}
+\item \texttt{/api/students}
+\end{itemize}
+
+\chapter{Appendix C: Diagram Source}
+The Mermaid source code for all required diagrams is provided in \texttt{diagrams\_mermaid.md}. Render each diagram as PNG or SVG and insert it into the matching placeholder figure in Chapter I and Chapter III.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+\bibitem{nextjs} Vercel, ``Next.js Documentation,'' Available: \url{https://nextjs.org/docs}. Accessed: Apr. 20, 2026.
+\bibitem{react} Meta Open Source, ``React Documentation,'' Available: \url{https://react.dev/}. Accessed: Apr. 20, 2026.
+\bibitem{typescript} Microsoft, ``TypeScript Documentation,'' Available: \url{https://www.typescriptlang.org/docs/}. Accessed: Apr. 20, 2026.
+\bibitem{mongodb} MongoDB Inc., ``MongoDB Manual,'' Available: \url{https://www.mongodb.com/docs/}. Accessed: Apr. 20, 2026.
+\bibitem{mongoose} Mongoose, ``Mongoose Documentation,'' Available: \url{https://mongoosejs.com/docs/}. Accessed: Apr. 20, 2026.
+\bibitem{matterjs} L. Brummitt, ``Matter.js Documentation,'' Available: \url{https://brm.io/matter-js/docs/}. Accessed: Apr. 20, 2026.
+\bibitem{recharts} Recharts Group, ``Recharts Documentation,'' Available: \url{https://recharts.org/}. Accessed: Apr. 20, 2026.
+\bibitem{tailwind} Tailwind Labs, ``Tailwind CSS Documentation,'' Available: \url{https://tailwindcss.com/docs}. Accessed: Apr. 20, 2026.
+\bibitem{pressman} R. S. Pressman and B. R. Maxim, \textit{Software Engineering: A Practitioner's Approach}, 9th ed. New York, NY, USA: McGraw-Hill, 2019.
+\bibitem{sommerville} I. Sommerville, \textit{Software Engineering}, 10th ed. Boston, MA, USA: Pearson, 2016.
+\bibitem{halliday} D. Halliday, R. Resnick, and J. Walker, \textit{Fundamentals of Physics}, 10th ed. Hoboken, NJ, USA: Wiley, 2013.
+\bibitem{chang} R. Chang and K. A. Goldsby, \textit{Chemistry}, 12th ed. New York, NY, USA: McGraw-Hill, 2016.
+\end{thebibliography}
+
+\end{document}
